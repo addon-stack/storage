@@ -33,8 +33,11 @@
     "src/**/*.{ts,tsx,js,jsx}": [
       "npm run test:related --"
     ],
-    "*.{json,md,mdx,css,scss,html}": [
+    "*.{json,css,scss,html}": [
       "biome check --write"
+    ],
+    "*.{md,mdx}": [
+      "prettier --write"
     ]
   },
   "overrides": {
