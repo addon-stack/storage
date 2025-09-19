@@ -35,6 +35,7 @@ jobs:
         uses: changesets/action@v1
         with:
           publish: npm publish --provenance --access public
+          createGithubReleases: true
         env:
           HUSKY: 0
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
