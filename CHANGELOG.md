@@ -1,5 +1,11 @@
 # @addon-core/storage
 
+## 0.1.2
+
+### Patch Changes
+
+- [`40c75eb`](https://github.com/addon-stack/storage/commit/40c75ebeaa8960e5d7f483a84ddae24b7a347f03) Thanks [@addon-stack](https://github.com/addon-stack)! - Fix pipeline
+
 ## 0.1.1
 
 ### Patch Changes
