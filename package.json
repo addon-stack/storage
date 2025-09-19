@@ -37,6 +37,9 @@
       "biome check --write"
     ]
   },
+  "overrides": {
+    "glob": "^10.3.12"
+  },
   "devDependencies": {
     "@biomejs/biome": "2.2.3",
     "@commitlint/cli": "^19.5.0",
