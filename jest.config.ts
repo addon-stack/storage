@@ -1,6 +1,6 @@
 import type { Config } from 'jest';
 
-const config: Config = {
+export default {
   testEnvironment: 'node',
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   preset: 'ts-jest/presets/default-esm',
@@ -17,6 +17,4 @@ const config: Config = {
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
-};
-
-export default config;
+} satisfies Config;
