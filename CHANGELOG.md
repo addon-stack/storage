@@ -1,5 +1,15 @@
 # @addon-core/storage
 
+## 0.1.4
+
+### Patch Changes
+
+- [`c997bd4`](https://github.com/addon-stack/storage/commit/c997bd48e3f5d01933c15a3c58c1835f430d277d) Thanks [@addon-stack](https://github.com/addon-stack)! - ### Improve release workflows for branch-based releases
+    - Updated `release-publish.yml` to use `npm publish` with provenance and public access.
+    - Enhanced token configurations for compatibility.
+    - Modified `release-prepare.yml` to handle branch-based release preparation.
+    - Added automatic branch creation and targeted PR updates for release branches.
+
 ## 0.1.3
 
 ### Patch Changes
