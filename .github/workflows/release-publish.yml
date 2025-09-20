@@ -32,14 +32,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create Release PR or Publish to npm
+      - name: Ensure no raw changeset files on main
+        id: check_changesets
+        run: |
+          if ls .changeset/*.md >/dev/null 2>&1; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "::error::Raw changeset files found on main. This indicates the prepare step wasn't applied in a release/* branch. Skipping publish to prevent auto PR creation. Remove or consume changesets via 'changeset version' in a release/* branch, then finish release." >&2
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release and Publish to npm via Changesets
+        if: steps.check_changesets.outputs.found == 'false'
         uses: changesets/action@v1
         with:
-          publish: npm publish --provenance --access public
+          publish: npm run release
           createGithubReleases: true
           commitMode: github-api
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
           HUSKY: 0

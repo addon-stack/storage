@@ -53,12 +53,15 @@ jobs:
       - name: Commit version & changelog changes into prep branch
         if: steps.changes.outputs.has_changes == 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
+        env:
+          HUSKY: 0
         with:
           commit_message: "chore: version packages (prepare release)"
           commit_user_name: github-actions[bot]
           commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
           branch: changeset/prepare-${{ github.ref_name }}
           create_branch: true
+          push_options: --force-with-lease
 
       - name: Open or update PR to release branch
         if: steps.changes.outputs.has_changes == 'true'
