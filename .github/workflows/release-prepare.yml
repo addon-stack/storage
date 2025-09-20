@@ -39,7 +39,19 @@ jobs:
           HUSKY: 0
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Detect changes after versioning
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            git status --porcelain
+          fi
+
       - name: Commit version & changelog changes into prep branch
+        if: steps.changes.outputs.has_changes == 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: version packages (prepare release)"
@@ -49,6 +61,7 @@ jobs:
           create_branch: true
 
       - name: Open or update PR to release branch
+        if: steps.changes.outputs.has_changes == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -64,7 +77,18 @@ jobs:
               const pr = existing.data[0];
               await github.rest.pulls.update({ owner, repo, pull_number: pr.number, title, body });
               core.info(`Updated PR #${pr.number}: ${pr.html_url}`);
-            } else {
-              const pr = await github.rest.pulls.create({ owner, repo, head: headBranch, base, title, body });
-              core.info(`Created PR #${pr.data.number}: ${pr.data.html_url}`);
+              return;
             }
+
+            try {
+              const cmp = await github.rest.repos.compareCommits({ owner, repo, base, head: headBranch });
+              if (!cmp.data.ahead_by) {
+                core.info(`No commits ahead in ${headBranch} vs ${base}. Skipping PR creation.`);
+                return;
+              }
+            } catch (e) {
+              core.info(`compareCommits failed: ${e.message}`);
+            }
+
+            const pr = await github.rest.pulls.create({ owner, repo, head: headBranch, base, title, body });
+            core.info(`Created PR #${pr.data.number}: ${pr.data.html_url}`);
