@@ -32,7 +32,8 @@
     "test": "jest",
     "test:run": "jest --ci --passWithNoTests",
     "test:related": "jest --bail --passWithNoTests --findRelatedTests",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "release": "changeset publish"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
