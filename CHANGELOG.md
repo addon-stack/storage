@@ -1,5 +1,11 @@
 # @addon-core/storage
 
+## 0.1.5
+
+### Patch Changes
+
+- [`cbbb134`](https://github.com/addon-stack/storage/commit/cbbb134d46b5de858459c6e2cf78bb7215b0d509) Thanks [@addon-stack](https://github.com/addon-stack)! - add Contributor Covenant Code of Conduct
+
 ## 0.1.4
 
 ### Patch Changes
