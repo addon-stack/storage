@@ -1,5 +1,14 @@
 # @addon-core/storage
 
+## 0.1.4
+
+### Patch Changes
+
+- [`1235a88`](https://github.com/addon-stack/storage/commit/1235a8839ab11b752da2c511c843c0f19a88c1c7) Thanks [@addon-stack](https://github.com/addon-stack)! - add check for raw changeset files and improve npm publishing
+    - Added a pre-publish step in `release-publish.yml` to identify and prevent publishing with raw changeset files on the main branch.
+    - Updated the publish action to use `npm run release`.
+    - Enhanced `release-prepare.yml` to disable Husky and force push changes in branch preparation.
+
 ## 0.1.3
 
 ### Patch Changes
