@@ -1,5 +1,13 @@
 # @addon-core/storage
 
+## 0.1.3
+
+### Patch Changes
+
+- [`4018660`](https://github.com/addon-stack/storage/commit/40186609bdbe9933908060167b5f437b702ab8f9) Thanks [@addon-stack](https://github.com/addon-stack)! - Add MIT license to package and project files
+    - Added `MIT` license to `package.json`.
+    - Created `LICENSE.md` containing copyright and license details.
+
 ## 0.1.2
 
 ### Patch Changes
