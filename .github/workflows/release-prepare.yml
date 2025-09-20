@@ -37,6 +37,7 @@ jobs:
         run: npx changeset version
         env:
           HUSKY: 0
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit version & changelog changes
         uses: stefanzweifel/git-auto-commit-action@v5
