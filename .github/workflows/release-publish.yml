@@ -42,6 +42,10 @@ jobs:
             echo "found=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Build
+        if: steps.check_changesets.outputs.found == 'false'
+        run: npm run build
+
       - name: Create GitHub Release and Publish to npm via Changesets
         if: steps.check_changesets.outputs.found == 'false'
         uses: changesets/action@v1
