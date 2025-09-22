@@ -12,6 +12,12 @@
     "clientKind": "git",
     "useIgnoreFile": true
   },
+  "files": {
+    "includes": [
+      "src/**/*.{ts,tsx,js,jsx}",
+      "!src/**/*.test.{ts,tsx,js,jsx}"
+    ]
+  },
   "formatter": {
     "indentStyle": "space"
   },
@@ -28,7 +34,10 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "off"
+      }
     }
   }
 }
