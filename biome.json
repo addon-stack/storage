@@ -25,7 +25,8 @@
     "includes": [
       "src/**/*.{ts,tsx,js,jsx}",
       "!src/**/*.test.{ts,tsx,js,jsx}",
-      "**/*.{json,jsonc}"
+      "**/*.{json,jsonc,md,mdx}",
+      ".changeset/**/*.{md,mdx}"
     ]
   },
   "formatter": {
