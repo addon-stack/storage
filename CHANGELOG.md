@@ -1,5 +1,11 @@
 # @addon-core/storage
 
+## 0.2.1
+
+### Patch Changes
+
+- [`e39a7db`](https://github.com/addon-stack/storage/commit/e39a7dbfe1c91bdb6ee6f9f50e08215304fd9ed8) Thanks [@addon-stack](https://github.com/addon-stack)! - update release workflow to run build step before publishing
+
 ## 0.2.0
 
 ### Minor Changes
