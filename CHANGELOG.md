@@ -1,5 +1,11 @@
 # @addon-core/storage
 
+## 0.1.6
+
+### Patch Changes
+
+- [`0365825`](https://github.com/addon-stack/storage/commit/0365825edde15539e507b0fc5c115d19afe9380e) Thanks [@addon-stack](https://github.com/addon-stack)! - simplify release workflow by committing changes directly to release branch
+
 ## 0.1.5
 
 ### Patch Changes
