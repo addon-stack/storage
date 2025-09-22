@@ -16,6 +16,14 @@
                 "bracketSameLine": false,
                 "printWidth": 40
             }
+        },
+        {
+            "files": "*.yml",
+            "options": {
+                "tabWidth": 2,
+                "bracketSpacing": true,
+                "bracketSameLine": false
+            }
         }
     ]
 }
