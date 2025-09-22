@@ -1,7 +1,7 @@
 import "jest-webextension-mock";
 import {TextDecoder, TextEncoder} from "util";
 
-import type {StorageProvider, StorageState} from "../src/types";
+import type {StorageProvider, StorageState} from "../src";
 
 type Listener = (changes: Record<string, chrome.storage.StorageChange>, areaName: chrome.storage.AreaName) => void;
 
@@ -98,22 +98,18 @@ cryptoMock.subtle.deriveKey.mockImplementation((algorithm, baseKey, derivedKeyAl
     });
 });
 
-// @ts-expect-error
 cryptoMock.subtle.decrypt.mockImplementation((_, __, data: ArrayBufferLike) => {
     return Promise.resolve(new Uint8Array(data));
 });
 
-// @ts-expect-error
 cryptoMock.subtle.encrypt.mockImplementation((_, __, data: ArrayBufferLike) => {
     return Promise.resolve(new Uint8Array(data));
 });
 
-// @ts-expect-error
 cryptoMock.subtle.digest.mockImplementation((_, __) => {
     return Promise.resolve(new Uint8Array([0x01, 0x02, 0x03, 0x04]));
 });
 
-// @ts-expect-error
 cryptoMock.getRandomValues.mockImplementation((array: Array<any>) => {
     for (let i = 0; i < array.length; i++) {
         array[i] = Math.floor(Math.random() * 256);

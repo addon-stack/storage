@@ -1,4 +1,4 @@
-import type {StorageProvider, StorageState} from "../src/types";
+import type {StorageProvider, StorageState} from "../src";
 
 declare global {
     var storageLocalGet: (key: string | string[], storage?: StorageProvider<StorageState>) => Promise<any>;
