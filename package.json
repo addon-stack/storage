@@ -37,17 +37,15 @@
     "release": "changeset publish"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "biome check --write"
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,mdx,yml,yaml,css,scss,html}": [
+      "prettier --write"
     ],
     "src/**/*.{ts,tsx,js,jsx}": [
       "npm run test:related --"
-    ],
-    "*.{json,css,scss,html}": [
-      "biome check --write"
-    ],
-    "*.{md,mdx}": [
-      "prettier --write"
     ]
   },
   "overrides": {
