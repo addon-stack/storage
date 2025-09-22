@@ -3,7 +3,7 @@ name: Release Prepare
 on:
   push:
     branches:
-      - 'release/*'
+      - "release/*"
 
 permissions:
   contents: write
@@ -56,10 +56,9 @@ jobs:
         env:
           HUSKY: 0
         with:
-          commit_message: "chore: version packages (prepare release)"
+          commit_message: "chore(release): version packages"
           commit_user_name: github-actions[bot]
           commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
           branch: ${{ github.ref_name }}
           create_branch: false
           push_options: --force-with-lease
-

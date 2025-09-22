@@ -1,5 +1,35 @@
 # @addon-core/storage
 
+## 0.2.0
+
+### Minor Changes
+
+- [`906ed65`](https://github.com/addon-stack/storage/commit/906ed6515c090427e81d86dd8c3e0d10d313fb8d) Thanks [@addon-stack](https://github.com/addon-stack)! - added storage providers and utilities:
+
+  - `Storage`, `SecureStorage`, `MonoStorage`
+  - React hook `useStorage` for convenient use of storage in components
+  - Factories `Storage.Local/Sync/Session`, namespace support, and `watch` for change subscriptions
+
+  #### Infrastructure and tooling
+
+  - migrate: switched to `Biome` for linting and code formatting
+  - chore: updated `npm` scripts and configs for consistency and stability
+  - chore: refined `lint-staged`, simplified pre-commit scripts
+  - chore: mass auto-formatting and import ordering
+
+  #### CI/CD and releases
+
+  - chore: simplified release preparation — commit changes directly to the release branch
+  - CI: current CI (type checks, tests, build, `npm pack --dry-run`) updated to match new scripts/linter
+
+  #### Reference commits
+
+  - feat: introduce Storage, SecureStorage, MonoStorage and useStorage hook — `4459fd5`
+  - migrate to Biome — `2b4d1a3`
+  - update scripts/configs — `8daee6b`
+  - lint-staged/pre-commit tweaks — `4ed5053`, `5ad57ac`
+  - simplify release workflow — `0365825`
+
 ## 0.1.6
 
 ### Patch Changes
@@ -17,44 +47,46 @@
 ### Patch Changes
 
 - [`c997bd4`](https://github.com/addon-stack/storage/commit/c997bd48e3f5d01933c15a3c58c1835f430d277d) Thanks [@addon-stack](https://github.com/addon-stack)! - ### Improve release workflows for branch-based releases
-    - Updated `release-publish.yml` to use `npm publish` with provenance and public access.
-    - Enhanced token configurations for compatibility.
-    - Modified `release-prepare.yml` to handle branch-based release preparation.
-    - Added automatic branch creation and targeted PR updates for release branches.
+  - Updated `release-publish.yml` to use `npm publish` with provenance and public access.
+  - Enhanced token configurations for compatibility.
+  - Modified `release-prepare.yml` to handle branch-based release preparation.
+  - Added automatic branch creation and targeted PR updates for release branches.
 
 ## 0.1.3
 
 ### Patch Changes
 
 - [`4018660`](https://github.com/addon-stack/storage/commit/40186609bdbe9933908060167b5f437b702ab8f9) Thanks [@addon-stack](https://github.com/addon-stack)! - Add MIT license to package and project files
-    - Added `MIT` license to `package.json`.
-    - Created `LICENSE.md` containing copyright and license details.
+  - Added `MIT` license to `package.json`.
+  - Created `LICENSE.md` containing copyright and license details.
 
 ## 0.1.2
 
 ### Patch Changes
 
 - [`40c75eb`](https://github.com/addon-stack/storage/commit/40c75ebeaa8960e5d7f483a84ddae24b7a347f03) Thanks [@addon-stack](https://github.com/addon-stack)! - ### Configure workflows for release preparation and publishing
-    - Added `release-prepare.yml` to automate versioning and changelog generation with Changesets.
-    - Renamed and updated `release.yml` to `release-publish.yml` for npm publishing.
-    - Enhanced `ci.yml` workflow with support for workflow calls.
-    - Updated Changesets configuration and added `release` script in `package.json`.
+  - Added `release-prepare.yml` to automate versioning and changelog generation with Changesets.
+  - Renamed and updated `release.yml` to `release-publish.yml` for npm publishing.
+  - Enhanced `ci.yml` workflow with support for workflow calls.
+  - Updated Changesets configuration and added `release` script in `package.json`.
 
 ## 0.1.1
 
 ### Patch Changes
 
 - [`120ca74`](https://github.com/addon-stack/storage/commit/120ca74dd515728179869a895d2b4e05686d6417) Thanks [@addon-stack](https://github.com/addon-stack)! - #### 0.1.1 — Patch (upcoming)
-    - Added: CI workflow for automated releases via Changesets and npm publication.
-    - Added: `commitlint` for commit message validation.
-    - Style: Unified code formatting (double quotes, indentation).
-    - Chore: Cleaned up unused dependencies and added `overrides` for `glob`.
 
-    #### 0.1.0 — Initial Release
-    - Introduced package `@addon-core/storage` with CJS/ESM/types exports.
-    - Build: Configured bundling with `@rslib/core` (`build`, `dev`).
-    - Tooling: Set up TypeScript, `Biome`, `ESLint`, `Prettier`, `Jest`, `husky`, and `lint-staged`.
-    - Scripts: `typecheck`, `test`, `test:run`, `test:related`.
-    - CI: Added `ci.yml` to run `biome check`, `typecheck`, tests, build, and `npm pack --dry-run`; includes Node 18/20/22 matrix for `main` and PRs to `main`.
-    - Releases: Added `release.yml` using `changesets/action@v1` for creating release PRs or publishing to npm (`npm publish --provenance --access public`).
-    - Changesets: Added
+  - Added: CI workflow for automated releases via Changesets and npm publication.
+  - Added: `commitlint` for commit message validation.
+  - Style: Unified code formatting (double quotes, indentation).
+  - Chore: Cleaned up unused dependencies and added `overrides` for `glob`.
+
+  #### 0.1.0 — Initial Release
+
+  - Introduced package `@addon-core/storage` with CJS/ESM/types exports.
+  - Build: Configured bundling with `@rslib/core` (`build`, `dev`).
+  - Tooling: Set up TypeScript, `Biome`, `ESLint`, `Prettier`, `Jest`, `husky`, and `lint-staged`.
+  - Scripts: `typecheck`, `test`, `test:run`, `test:related`.
+  - CI: Added `ci.yml` to run `biome check`, `typecheck`, tests, build, and `npm pack --dry-run`; includes Node 18/20/22 matrix for `main` and PRs to `main`.
+  - Releases: Added `release.yml` using `changesets/action@v1` for creating release PRs or publishing to npm (`npm publish --provenance --access public`).
+  - Changesets: Added

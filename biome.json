@@ -3,7 +3,16 @@
   "assist": {
     "actions": {
       "source": {
-        "organizeImports": "on"
+        "organizeImports": {
+          "options": {
+            "groups": [
+              {
+                "type": false
+              }
+            ]
+          },
+          "level": "on"
+        }
       }
     }
   },
@@ -12,12 +21,35 @@
     "clientKind": "git",
     "useIgnoreFile": true
   },
+  "files": {
+    "includes": [
+      "src/**/*.{ts,tsx,js,jsx}",
+      "!src/**/*.test.{ts,tsx,js,jsx}",
+      "**/*.{json,jsonc,md,mdx}",
+      ".changeset/**/*.{md,mdx}"
+    ]
+  },
   "formatter": {
-    "indentStyle": "space"
+    "indentStyle": "space",
+    "indentWidth": 4,
+    "lineWidth": 120,
+    "bracketSpacing": false
   },
   "javascript": {
     "formatter": {
-      "quoteStyle": "single"
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "es5",
+      "arrowParentheses": "asNeeded"
+    }
+  },
+  "json": {
+    "formatter": {
+      "indentWidth": 2,
+      "expand": "always"
+    },
+    "linter": {
+      "enabled": false
     }
   },
   "css": {
@@ -28,7 +60,20 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "off"
+      }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "src/providers/AbstractStorage.ts"
+      ],
+      "linter": {
+        "enabled": false
+      }
+    }
+  ]
 }
