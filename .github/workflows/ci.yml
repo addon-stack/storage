@@ -25,14 +25,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint & format check (Biome)
-        run: npm run check
+      - name: Lint (Biome)
+        run: npm run lint
+
+      - name: Format check (Biome)
+        run: npm run format:check
 
       - name: Typecheck
         run: npm run typecheck
 
       - name: Test (Jest)
-        run: npm run test:run
+        run: npm run test:ci
 
       - name: Build (rslib)
         run: npm run build
@@ -65,7 +68,7 @@ jobs:
         run: npm run typecheck
 
       - name: Test (Jest)
-        run: npm run test:run
+        run: npm run test:ci
 
       - name: Build (rslib)
         run: npm run build

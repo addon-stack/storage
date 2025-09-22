@@ -1,63 +1,78 @@
 {
-    "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-    "assist": {
-        "actions": {
-            "source": {
-                "organizeImports": {
-                    "options": {
-                        "groups": [
-                            {
-                                "type": false
-                            }
-                        ]
-                    },
-                    "level": "on"
-                }
-            }
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "options": {
+            "groups": [
+              {
+                "type": false
+              }
+            ]
+          },
+          "level": "on"
         }
-    },
-    "vcs": {
-        "enabled": true,
-        "clientKind": "git",
-        "useIgnoreFile": true
-    },
-    "files": {
-        "includes": ["src/**/*.{ts,tsx,js,jsx}", "!src/**/*.test.{ts,tsx,js,jsx}"]
-    },
+      }
+    }
+  },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "src/**/*.{ts,tsx,js,jsx}",
+      "!src/**/*.test.{ts,tsx,js,jsx}",
+      "**/*.{json,jsonc}"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 4,
+    "lineWidth": 120,
+    "bracketSpacing": false
+  },
+  "javascript": {
     "formatter": {
-        "indentStyle": "space",
-        "indentWidth": 4,
-        "lineWidth": 120,
-        "bracketSpacing": false
-    },
-    "javascript": {
-        "formatter": {
-            "quoteStyle": "double",
-            "semicolons": "always",
-            "trailingCommas": "es5",
-            "arrowParentheses": "asNeeded"
-        }
-    },
-    "css": {
-        "parser": {
-            "cssModules": true
-        }
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "es5",
+      "arrowParentheses": "asNeeded"
+    }
+  },
+  "json": {
+    "formatter": {
+      "indentWidth": 2,
+      "expand": "always"
     },
     "linter": {
-        "enabled": true,
-        "rules": {
-            "recommended": true,
-            "suspicious": {
-                "noExplicitAny": "off"
-            }
-        }
-    },
-    "overrides": [
-        {
-            "includes": ["src/providers/AbstractStorage.ts"],
-            "linter": {
-                "enabled": false
-            }
-        }
-    ]
+      "enabled": false
+    }
+  },
+  "css": {
+    "parser": {
+      "cssModules": true
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "src/providers/AbstractStorage.ts"
+      ],
+      "linter": {
+        "enabled": false
+      }
+    }
+  ]
 }

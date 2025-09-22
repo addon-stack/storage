@@ -31,26 +31,29 @@
   "scripts": {
     "prepare": "husky",
     "build": "rslib build",
-    "check": "biome check --write",
     "dev": "rslib build --watch",
+
     "format": "biome format --write .",
-    "format:check": "biome format --write=false .",
+    "format:check": "biome check --formatter-enabled=true --linter-enabled=false .",
+
     "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "lint:fix:unsafe": "biome check --write --unsafe .",
+
     "test": "jest",
-    "test:run": "jest --ci --passWithNoTests",
+    "test:ci": "jest --ci --passWithNoTests",
     "test:related": "jest --bail --passWithNoTests --findRelatedTests",
+
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "release": "changeset publish"
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": [
-      "biome check --write --unsafe"
+      "biome check --write --unsafe",
+      "npm run test:related --"
     ],
     "*.{json,md,mdx,yml,yaml,css,scss,html}": [
       "biome format --write"
-    ],
-    "src/**/*.{ts,tsx,js,jsx}": [
-      "npm run test:related --"
     ]
   },
   "overrides": {
@@ -84,14 +87,17 @@
     "@adnbn/browser": "^0.1.7"
   },
   "peerDependencies": {
-    "react": "^18 || ^19",
-    "react-dom": "^18 || ^19"
+    "@types/chrome": "*",
+    "@types/react": "*",
+    "@types/react-dom": "*",
+    "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc",
+    "react-dom": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc"
   },
   "peerDependenciesMeta": {
-    "react": {
+    "@types/react": {
       "optional": true
     },
-    "react-dom": {
+    "@types/react-dom": {
       "optional": true
     }
   }

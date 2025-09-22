@@ -2,7 +2,9 @@
   "$schema": "https://unpkg.com/@changesets/config@2.3.1/schema.json",
   "changelog": [
     "@changesets/changelog-github",
-    { "repo": "addon-stack/storage" }
+    {
+      "repo": "addon-stack/storage"
+    }
   ],
   "commit": false,
   "fixed": [],
