@@ -1,7 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
-
 import {Storage} from "../../providers";
-
 import type {StorageProvider, StorageWatchOptions} from "../../types";
 
 export interface UseStorageOptions<T> {

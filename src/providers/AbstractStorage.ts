@@ -1,6 +1,6 @@
 import {browser, throwRuntimeError} from "@adnbn/browser";
-import type {StorageProvider, StorageState, StorageWatchOptions} from "../types";
 import MonoStorage from "./MonoStorage";
+import type {StorageProvider, StorageState, StorageWatchOptions} from "../types";
 
 const storage = () => browser().storage as typeof chrome.storage;
 

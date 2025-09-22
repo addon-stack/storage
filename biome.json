@@ -3,7 +3,14 @@
   "assist": {
     "actions": {
       "source": {
-        "organizeImports": "off"
+        "organizeImports": {
+          "options": {
+            "groups": [
+              { "type": false }
+            ]
+          },
+          "level": "on"
+        }
       }
     }
   },

@@ -1,5 +1,5 @@
-import type {StorageState, StorageWatchOptions} from "../types";
 import AbstractStorage, {type StorageOptions} from "./AbstractStorage";
+import type {StorageState, StorageWatchOptions} from "../types";
 
 type StorageChange = chrome.storage.StorageChange;
 
