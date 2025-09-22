@@ -1,6 +1,6 @@
 {
   "name": "@addon-core/storage",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -32,18 +32,14 @@
     "prepare": "husky",
     "build": "rslib build",
     "dev": "rslib build --watch",
-
     "format": "biome format --write .",
     "format:check": "biome check --formatter-enabled=true --linter-enabled=false .",
-
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:fix:unsafe": "biome check --write --unsafe .",
-
     "test": "jest",
     "test:ci": "jest --ci --passWithNoTests",
     "test:related": "jest --bail --passWithNoTests --findRelatedTests",
-
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "release": "changeset publish"
   },
