@@ -52,7 +52,11 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     public static make<
         S extends StorageState,
         O extends StorageOptions = StorageOptions,
-        T extends new (options?: O) => StorageProvider<S> = new (options?: O) => StorageProvider<S>,
+        T extends new (
+            options?: O
+        ) => StorageProvider<S> = new (
+            options?: O
+        ) => StorageProvider<S>,
     >(this: T, options?: FactoryOptions<T>): StorageProvider<S> {
         const {key, ...rest} = options || {};
 
@@ -68,7 +72,11 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     public static Local<
         S extends StorageState,
         O extends StorageOptions = StorageOptions,
-        T extends new (options?: O) => StorageProvider<S> = new (options?: O) => StorageProvider<S>,
+        T extends new (
+            options?: O
+        ) => StorageProvider<S> = new (
+            options?: O
+        ) => StorageProvider<S>,
     >(this: T & {make: StaticMake<S, O>}, options?: AreaOptions<T>): StorageProvider<S> {
         return this.make({
             ...(options || {}),
@@ -79,7 +87,9 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     public static Session<
         S extends StorageState,
         O extends StorageOptions,
-        T extends new (options?: O) => StorageProvider<S>,
+        T extends new (
+            options?: O
+        ) => StorageProvider<S>,
     >(this: T & {make: StaticMake<S, O>}, options?: AreaOptions<T>): StorageProvider<S> {
         return this.make({
             ...(options || {}),
@@ -90,7 +100,11 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     public static Sync<
         S extends StorageState,
         O extends StorageOptions = StorageOptions,
-        T extends new (options?: O) => StorageProvider<S> = new (options?: O) => StorageProvider<S>,
+        T extends new (
+            options?: O
+        ) => StorageProvider<S> = new (
+            options?: O
+        ) => StorageProvider<S>,
     >(this: T & {make: StaticMake<S, O>}, options?: AreaOptions<T>): StorageProvider<S> {
         return this.make({
             ...(options || {}),
@@ -101,7 +115,11 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     public static Managed<
         S extends StorageState,
         O extends StorageOptions = StorageOptions,
-        T extends new (options?: O) => StorageProvider<S> = new (options?: O) => StorageProvider<S>,
+        T extends new (
+            options?: O
+        ) => StorageProvider<S> = new (
+            options?: O
+        ) => StorageProvider<S>,
     >(this: T & {make: StaticMake<S, O>}, options?: AreaOptions<T>): StorageProvider<S> {
         return this.make({
             ...(options || {}),
