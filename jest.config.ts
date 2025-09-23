@@ -4,15 +4,18 @@ export default {
     testEnvironment: "jsdom",
     setupFiles: ["<rootDir>/tests/jest.setup.ts"],
     testPathIgnorePatterns: ["/node_modules/", "/dist/"],
-    preset: "ts-jest/presets/default-esm",
     extensionsToTreatAsEsm: [".ts", ".tsx"],
     transform: {
         "^.+\\.(ts|tsx)$": [
-            "ts-jest",
+            "@swc/jest",
             {
-                useESM: true,
-                tsconfig: "tsconfig.json",
-            },
+                jsc: {
+                    parser: { syntax: "typescript", tsx: true },
+                    target: "es2022",
+                    transform: { react: { runtime: "automatic" } }
+                },
+                module: { type: "commonjs" }
+            }
         ],
     },
     moduleNameMapper: {
