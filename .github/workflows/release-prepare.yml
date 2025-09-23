@@ -35,7 +35,7 @@ jobs:
         run: npm ci
 
       - name: Semantic Release dry run (preview next version and notes)
-        run: npx semantic-release --dry-run --no-ci
+        run: npx semantic-release --dry-run --no-ci --extends ./.releaserc.preview.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0
