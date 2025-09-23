@@ -35,7 +35,7 @@ jobs:
         run: npm ci
 
       - name: Release (Semantic Release)
-        run: npx semantic-release
+        run: npx semantic-release --extends ./semantic-release.config.cjs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
