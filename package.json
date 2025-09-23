@@ -44,7 +44,7 @@
     "release:staged": "semantic-release -e ./release/staged.cjs"
   },
   "lint-staged": {
-    "src/**/*.{js,jsx,ts,tsx}": [
+    "src/**/*.{js,jsx,ts,tsx,cjs,mjs}": [
       "biome check --write --unsafe",
       "npm run test:related --"
     ],
