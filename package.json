@@ -40,7 +40,8 @@
     "test:ci": "jest --ci --passWithNoTests",
     "test:related": "jest --bail --passWithNoTests --findRelatedTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "release": "semantic-release"
+    "release": "semantic-release -e ./release/committed.cjs",
+    "release:staged": "semantic-release -e ./release/staged.cjs"
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": [

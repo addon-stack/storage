@@ -4,7 +4,7 @@ import {fixImportsPlugin} from "esbuild-fix-imports-plugin";
 export default defineConfig({
     entry: [
         "src/**/*.ts",
-        "src/types.ts",
+        "!src/types.ts",
         "!src/**/*.test.ts",
         "!src/**/*.test.tsx",
         "!src/**/*.spec.ts",
