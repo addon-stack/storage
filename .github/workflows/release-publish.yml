@@ -15,12 +15,14 @@ jobs:
     secrets: inherit
 
   publish:
-    name: Publish to npm via Changesets
+    name: Publish via Semantic Release
     runs-on: ubuntu-latest
     needs: ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,27 +34,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Ensure no raw changeset files on main
-        id: check_changesets
-        run: |
-          if ls .changeset/*.md >/dev/null 2>&1; then
-            echo "found=true" >> "$GITHUB_OUTPUT"
-            echo "::error::Raw changeset files found on main. This indicates the prepare step wasn't applied in a release/* branch. Skipping publish to prevent auto PR creation. Remove or consume changesets via 'changeset version' in a release/* branch, then finish release." >&2
-          else
-            echo "found=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Build
-        if: steps.check_changesets.outputs.found == 'false'
-        run: npm run build
-
-      - name: Create GitHub Release and Publish to npm via Changesets
-        if: steps.check_changesets.outputs.found == 'false'
-        uses: changesets/action@v1
-        with:
-          publish: npm run release
-          createGithubReleases: true
-          commitMode: github-api
+      - name: Release (Semantic Release)
+        run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
