@@ -1,2 +1,2 @@
-export * from "./providers";
-export * from "./types.ts";
+export {MonoStorage, SecureStorage, Storage} from "./providers";
+export type {StorageProvider, StorageState, StorageWatchOptions} from "./types";
