@@ -1,3 +1,10 @@
+## [0.2.2](https://github.com/addon-stack/storage/compare/v0.2.1...v0.2.2) (2025-09-23)
+
+
+### Bug Fixes
+
+* remove unused `--debug` flag from Semantic Release dry run ([9108ff3](https://github.com/addon-stack/storage/commit/9108ff3e5a257053a8f4c969d308e44714b20dec))
+
 # @addon-core/storage
 
 ## 0.2.1
