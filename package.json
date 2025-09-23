@@ -81,6 +81,7 @@
     "jest-webextension-mock": "^4.0.0",
     "lint-staged": "^15.2.10",
     "semantic-release": "^24.2.9",
+    "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   },
   "dependencies": {
