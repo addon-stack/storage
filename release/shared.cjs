@@ -20,16 +20,16 @@ const commonPlugins = [
             preset: "conventionalcommits",
             presetConfig: {
                 types: [
-                    {type: "feat", section: "Features"},
-                    {type: "fix", section: "Bug Fixes"},
-                    {type: "perf", section: "Performance Improvements"},
-                    {type: "refactor", section: "Refactoring"},
-                    {type: "chore", section: "Chores"},
+                    {type: "feat", section: "Features", hidden: false},
+                    {type: "fix", section: "Bug Fixes", hidden: false},
+                    {type: "perf", section: "Performance Improvements", hidden: false},
+                    {type: "refactor", section: "Refactoring", hidden: false},
+                    {type: "chore", section: "Chores", hidden: false},
                 ],
             },
             writerOpts: {
                 commitPartial:
-                    "{{#if type}}{{#if scope}}**{{scope}}:** {{/if}}{{subject}}\n\n{{#if body}}{{body}}\n{{/if}}{{/if}}",
+                    "* {{#if scope}}**{{scope}}:** {{/if}}{{subject}}\n\n{{~#if body}}{{body}}\n{{/if}}",
             },
         },
     ],
