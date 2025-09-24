@@ -1,4 +1,4 @@
-name: Release Sync main → develop
+name: Release Sync
 
 on:
   workflow_run:
@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Merge main → develop
-        uses: tibdex/merge-branch@v3
+        uses: devmasx/merge-branch@master
         with:
-          source: main
-          target: develop
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          from_branch: main
+          target_branch: develop
+          type: now
+          github_token: ${{ secrets.GITHUB_TOKEN }}
