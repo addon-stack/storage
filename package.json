@@ -11,6 +11,21 @@
   "bugs": {
     "url": "https://github.com/addon-stack/storage/issues"
   },
+  "keywords": [
+    "storage",
+    "addon",
+    "extension",
+    "browser",
+    "chrome",
+    "firefox",
+    "edge",
+    "opera",
+    "safari"
+  ],
+  "author": "Addon Stack <addonbonedev@gmail.com>",
+  "contributors": [
+    "Anjey Tsibylskij (https://github.com/atldays)"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

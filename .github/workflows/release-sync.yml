@@ -1,0 +1,22 @@
+name: Release Sync main → develop
+
+on:
+  workflow_run:
+    workflows: ["Release Publish"]
+    types: ["completed"]
+
+permissions:
+  contents: write
+
+jobs:
+  merge:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge main → develop
+        uses: tibdex/merge-branch@v3
+        with:
+          source: main
+          target: develop
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -28,9 +28,8 @@ const commonPlugins = [
                 ],
             },
             writerOpts: {
-                // Include full commit body in release notes
                 commitPartial:
-                    "{{#if scope}}**{{scope}}:** {{/if}}{{subject}}\n\n{{#if body}}{{body}}\n{{/if}}",
+                    "{{#if type}}{{#if scope}}**{{scope}}:** {{/if}}{{subject}}\n\n{{#if body}}{{body}}\n{{/if}}{{/if}}",
             },
         },
     ],
