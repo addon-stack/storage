@@ -28,8 +28,10 @@ const commonPlugins = [
                 ],
             },
             writerOpts: {
+                headerPartial:
+                    "## 🚀 {{#if @root.pkg}}{{@root.pkg.name}} {{else}}{{~#if name}}{{name}} {{/if}}{{/if}}{{version}}\n\n",
                 commitPartial:
-                    "* {{#if scope}}**{{scope}}:** {{/if}}{{subject}}\n\n{{~#if body}}{{body}}\n{{/if}}",
+                    "### {{#if scope}}`{{scope}}`: {{/if}}{{subject}}\n\n{{~#if body}}{{body}}\n{{/if}}",
             },
         },
     ],
