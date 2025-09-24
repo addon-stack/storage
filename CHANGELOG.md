@@ -1,3 +1,19 @@
+## 0.3.0 (2025-09-24)
+
+**ci:** add workflow to sync main into develop upon release
+
+- Introduced `release-sync.yml` to automatically merge `main` into `develop` post-release.
+- Utilizes `tibdex/merge-branch@v3` to handle the branch sync process.
+- Triggers on successful completion of the `Release Publish` workflow.
+**ci:** enhance commitPartial to properly handle type and scope checks
+
+- Updated `commitPartial` template in `shared.cjs` to include a type check.
+- Ensures release notes are generated only if a valid `type` is present.
+add keywords, author, and contributors metadata
+
+- Added `keywords` for improved discoverability of the package.
+- Included `author` and `contributors` fields for better attribution.
+
 ## <small>0.2.3 (2025-09-23)</small>
 
 Merge branch 'main' into develop
