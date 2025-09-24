@@ -28,11 +28,17 @@ const commonPlugins = [
                 ],
             },
             writerOpts: {
+                headerPartial:
+                    "## 🚀 {{#if @root.pkg}}{{@root.pkg.name}} {{else}}{{~#if name}}{{name}} {{/if}}{{/if}}{{version}}\n\n",
                 commitPartial:
-                    "* {{#if scope}}**{{scope}}:** {{/if}}{{subject}}\n\n{{~#if body}}{{body}}\n{{/if}}",
-            },
-        },
-    ],
+                    "{{#if type}}* {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{subject}}{{else}}{{header}}{{/if}}\n\n{{~#if body}}{{{body}}}\n{{/if}}{{/if}}",
+
+                groupBy: "type",
+                commitGroupsSort: "title",
+                commitsSort: ["scope", "subject"]
+            }
+        }
+    ]
 ];
 
 module.exports = {commonPlugins};
