@@ -1,3 +1,38 @@
+## <small>0.2.3 (2025-09-23)</small>
+
+Merge branch 'main' into develop
+
+Merge branch 'release/next'
+
+Merge remote-tracking branch 'origin/main'
+
+standardize indentation and adjust lint-staged configuration
+
+- Updated indentation in all Semantic Release config files for consistency.
+- Standardized import format for `commonPlugins` across configs.
+- Enhanced `lint-staged` and `biome.json` to include `.cjs` and `.mjs` file formats.
+restructure Semantic Release configs and update workflows
+
+- Moved release configs to `release` directory for better organization.
+- Split shared plugins into `shared.cjs` for reduced duplication across configs.
+- Updated `release-publish.yml` and `release-prepare.yml` to reference new config paths.
+- Removed outdated `semantic-release.config.cjs` and `semantic-release.preview.cjs`.
+- Excluded `src/types.ts` from the build entrypoint in `tsup.config.ts`.
+migrate build tooling to `tsup` and update dependencies
+
+- Replaced `@rslib/core` build config with `tsup` for a streamlined setup.
+- Removed `.changeset` directory and `rslib.config.ts` as part of build tool migration.
+- Updated `semantic-release.preview.cjs` indentation for consistency.
+- Added `esbuild-fix-imports-plugin` and `tsup` to `devDependencies` for improved module bundling.
+- Updated import in `useStorage.ts` to reflect proper module export.
+
+## [0.2.2](https://github.com/addon-stack/storage/compare/v0.2.1...v0.2.2) (2025-09-23)
+
+
+### Bug Fixes
+
+* remove unused `--debug` flag from Semantic Release dry run ([9108ff3](https://github.com/addon-stack/storage/commit/9108ff3e5a257053a8f4c969d308e44714b20dec))
+
 # @addon-core/storage
 
 ## 0.2.1
