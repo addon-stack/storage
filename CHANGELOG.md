@@ -1,3 +1,22 @@
+## 🚀 0.3.1
+
+
+* re-enable and refine writerOpts for release configuration- Uncommented and refined `writerOpts` in `shared.cjs` for structured release notes.
+- Enhanced `commitPartial` to properly handle `subject` fallback and `body` rendering.
+- Restored and fine-tuned sorting for `type`, `scope`, and `subject` fields.
+* **shared.cjs:** comment out writerOpts in release configuration- Temporarily disabled `writerOpts` block by commenting it out in `shared.cjs`.
+- Ensures configuration is bypassed while retaining the original logic for reference.
+* **ci:** improve commitPartial and release notes grouping logic- Updated `commitPartial` in `shared.cjs` to include `type` and `scope` formatting enhancements.
+- Enabled grouping of commits by `type` with sorting on `scope` and `subject`.
+- Adjusted `commitGroupsSort` and `commitsSort` for better structured release notes.
+* **ci:** streamline release messaging and enhance template structure- Updated `committed.cjs` to remove release notes from commit message template.
+- Improved `shared.cjs` by adjusting `commitPartial` to use headers for better readability.
+- Added `headerPartial` to include version information in generated release notes.
+* **ci:** update release-sync workflow and enhance commitPartial- Updated `release-sync.yml` to use `devmasx/merge-branch@master` for branch syncing.
+- Migrated workflow syntax to use `from_branch` and `target_branch` for clarity.
+- Improved `commitPartial` in `shared.cjs` by adjusting templates and ensuring better alignment.
+- Enabled `hidden` attribute for all Semantic Release type presets.
+
 ## 0.3.0 (2025-09-24)
 
 **ci:** add workflow to sync main into develop upon release
