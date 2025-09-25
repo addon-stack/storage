@@ -24,7 +24,7 @@ module.exports = {
             infile: "CHANGELOG.md",
             context: {
                 name: pkg.name,
-                pkg: { name: pkg.name },
+                pkg: {name: pkg.name},
                 repoUrl,
             },
             presetConfig: {
@@ -70,7 +70,7 @@ module.exports = {
                 commitGroupsSort: "title",
                 commitsSort: ["scope", "subject"],
                 transform: commit => {
-                    const nextCommit = { ...commit };
+                    const nextCommit = {...commit};
 
                     const type = (nextCommit.type || "").toLowerCase();
                     const value = typesMap.get(type);
