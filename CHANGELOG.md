@@ -1,5 +1,19 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.3.5 (2025-09-25)
+
+### 🐛 Bug Fixed
+
+* **release-it:** remove redundant `releaseName` field from config ([92bfca4](https://github.com/addon-stack/storage/commit/92bfca48d19c2dcbaa9b08c022f1e8b5d34b0a16))
+
+  - Deleted the `releaseName` field under the GitHub section as it is not used.
+  - Simplifies the configuration for release management.
+
+
+### 🧹 Chores
+
+* **release:** v0.3.4 [skip ci] ([7b9bf6d](https://github.com/addon-stack/storage/commit/7b9bf6d0211bbf0703a159489a631eeaa8d5cd2e))
+
 ## 🚀 Release `@addon-core/storage` v0.3.4 (2025-09-25)
 
 ### 🐛 Bug Fixed
