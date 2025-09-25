@@ -14,6 +14,7 @@ const types = [
 ];
 
 const typesMap = new Map(types.map(t => [t.type, t]));
+const repoUrl = pkg && pkg.repository && pkg.repository.url ? pkg.repository.url.replace(/\.git$/, "") : null;
 
 /** @type {import('release-it').Config} */
 module.exports = {
@@ -23,7 +24,8 @@ module.exports = {
             infile: "CHANGELOG.md",
             context: {
                 name: pkg.name,
-                pkg: {name: pkg.name},
+                pkg: { name: pkg.name },
+                repoUrl,
             },
             presetConfig: {
                 types,
@@ -68,7 +70,7 @@ module.exports = {
                 commitGroupsSort: "title",
                 commitsSort: ["scope", "subject"],
                 transform: commit => {
-                    const nextCommit = {...commit};
+                    const nextCommit = { ...commit };
 
                     const type = (nextCommit.type || "").toLowerCase();
                     const value = typesMap.get(type);
@@ -88,6 +90,10 @@ module.exports = {
                             .split("\n")
                             .map(line => (line ? "  " + line : ""))
                             .join("\n");
+                    }
+
+                    if (!nextCommit.href && nextCommit.hash && repoUrl) {
+                        nextCommit.href = `${repoUrl}/commit/${nextCommit.hash}`;
                     }
 
                     return nextCommit;
