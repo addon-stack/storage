@@ -45,6 +45,7 @@
   "scripts": {
     "prepare": "husky",
     "build": "tsup",
+    "prepublishOnly": "npm run build",
     "dev": "tsup --watch",
     "format": "biome format --write .",
     "format:check": "biome check --formatter-enabled=true --linter-enabled=false .",
@@ -55,8 +56,8 @@
     "test:ci": "jest --ci --passWithNoTests",
     "test:related": "jest --bail --passWithNoTests --findRelatedTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "release": "semantic-release -e ./release/committed.cjs",
-    "release:staged": "semantic-release -e ./release/staged.cjs"
+    "release": "release-it",
+    "release:preview": "release-it --no-github.release --no-npm.publish --no-git.tag --ci"
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx,cjs,mjs}": [
@@ -75,13 +76,7 @@
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
     "@microsoft/api-extractor": "^7.52.13",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/exec": "^7.1.0",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^11.0.6",
-    "@semantic-release/npm": "^12.0.2",
-    "@semantic-release/release-notes-generator": "^14.1.0",
+    "@release-it/conventional-changelog": "^10.0.1",
     "@swc/core": "^1.7.0",
     "@swc/jest": "^0.2.36",
     "@testing-library/react": "^16.3.0",
@@ -95,7 +90,7 @@
     "jest-environment-jsdom": "^30.1.2",
     "jest-webextension-mock": "^4.0.0",
     "lint-staged": "^15.2.10",
-    "semantic-release": "^24.2.9",
+    "release-it": "^19.0.5",
     "ts-node": "^10.9.2",
     "tsup": "^8.5.0",
     "typescript": "^5.9.2"
