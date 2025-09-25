@@ -1,5 +1,79 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.3.4 (2025-09-25)
+
+### 🐛 Bug Fixed
+
+* **ci:** migrate from semantic-release to release-it ([157a07b](https://github.com/addon-stack/storage/commit/157a07ba454bd29d0cd5f2460774aa2209f229e9))
+
+  - Removed all semantic-release-related configurations and workflows.
+  - Added release-it configurations for preview and publish workflows.
+  - Updated package dependencies to replace semantic-release with release-it.
+
+* **release-it:** add shorthash fallback and adjust release name format ([af14a46](https://github.com/addon-stack/storage/commit/af14a46768cdf91c6938e141448250fa8db99bc7))
+
+
+* **release-it:** update templates for consistent formatting and naming ([a8d5293](https://github.com/addon-stack/storage/commit/a8d52937443d61a92669d6908344a7f6996a50f2))
+
+
+* **release-it:** use `Map.get` for type lookup in commit transformation ([6b697be](https://github.com/addon-stack/storage/commit/6b697bea35dc4ef1ee22e0150da009eda4300ccf))
+
+
+
+### 🤖 CI
+
+* add CI job and update npm install commands ([009ec1f](https://github.com/addon-stack/storage/commit/009ec1ff2dd3e9d23e6c6019b01934b07f98622b))
+
+  - Introduced a reusable `ci` job in `release-publish.yml` and `release-prepare.yml` workflows.
+  - Updated `npm ci` to `npm install` for dependency installation in both workflows.
+
+* update workflows for release management and clean up dependencies ([85da77d](https://github.com/addon-stack/storage/commit/85da77d8ed7259920651f1d9099245a95edbb727))
+
+  - Added `name` and `needs: ci` fields in `release-publish.yml` and `release-prepare.yml`.
+  - Removed redundant `npm run build` step from `release-publish.yml`.
+  - Cleaned up unused dependencies from `package-lock.json` for better maintenance.
+
+* update workflows for release preparation and publishing ([af18584](https://github.com/addon-stack/storage/commit/af1858453d8459f8ffd7245d7468a20b95a7adfe))
+
+  - Added Git user configuration step in `release-publish.yml` for commits made by workflows.
+  - Enabled `hotfix/**` branch triggering in `release-prepare.yml` for flexible hotfix management.
+
+
+### 🧹 Chores
+
+* **release-it:** add repoUrl for commit links in changelogs ([5835e68](https://github.com/addon-stack/storage/commit/5835e6857f46fa2f055b97682f135e4f85c1f6ea))
+
+
+* **release-it:** enhance configuration for structured release notes ([405a947](https://github.com/addon-stack/storage/commit/405a9473ce543c5f7af15d26438eefba7aae132c))
+
+  - Added `context` to include package name in changelog and header templates.
+  - Updated `headerPartial` and introduced `mainTemplate` for improved formatting.
+  - Refined `commitPartial` to ensure proper handling of commit details.
+  - Simplified npm and GitHub release configurations for consistency.
+
+* **release-it:** refactor types configuration and enhance commit processing ([d11d849](https://github.com/addon-stack/storage/commit/d11d849daaca350d667b7f8a91f1eec44a2fa368))
+
+  - Refactored type definitions into a shared `types` array with additional metadata.
+  - Introduced `typesMap` for better type lookup and handling during commit transformation.
+  - Updated `context` to reuse parsed package information from `package.json`.
+  - Enhanced `transform` to filter out hidden commit types and reformat body content.
+  - Adjusted sorting and templates for structured and consistent release notes generation.
+
+* **release-it:** refine configuration for enhanced changelogs and bump logic ([034ea8a](https://github.com/addon-stack/storage/commit/034ea8ab24d008241e4908b2e914ccb7ab72b8b9))
+
+  - Made "chore" commits visible in changelogs, aligning with structured release notes.
+  - Enhanced `recommendedBumpOpts` to classify commit types and prioritize breaking changes.
+  - Improved `writerOpts` templates for consistent formatting with fallback handling.
+  - Adjusted `file` rules in `biome.json` for expanded file type handling in source and tests.
+
+* **release:** v0.3.2 [skip ci] ([dd442eb](https://github.com/addon-stack/storage/commit/dd442eb4953304fdf0498c6e2bd4a50765f116d7))
+
+
+* **release:** v0.3.3 [skip ci] ([2abab3a](https://github.com/addon-stack/storage/commit/2abab3a1d58d7ef86d54d794e9b128efbe24d0c9))
+
+
+* update configurations for formatting consistency and file handling ([699854d](https://github.com/addon-stack/storage/commit/699854d787f23fe14ffde3d11d2cd89cf4befa67))
+
 ## 🚀 Release `@addon-core/storage` v0.3.3 (2025-09-25)
 
 ### 🐛 Bug Fixed
