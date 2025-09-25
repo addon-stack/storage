@@ -23,9 +23,9 @@
   },
   "files": {
     "includes": [
-      "src/**/*.{ts,tsx,js,jsx,cjs,mjs}",
+      "src/**/*.{ts,tsx,js,jsx}",
       "!src/**/*.test.{ts,tsx,js,jsx}",
-      "**/*.{json,jsonc,md,mdx}"
+      "**/*.{json,jsonc,md,mdx,cjs,mjs}"
     ]
   },
   "formatter": {

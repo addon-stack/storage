@@ -9,8 +9,8 @@ const types = [
     {type: "test", section: "Tests", hidden: true},
     {type: "build", section: "🏗️ Build System", hidden: false},
     {type: "ci", section: "🤖 CI", hidden: false},
-    {type: "chore", section: "🧹 Chores", hidden: true},
-    {type: "revert", section: "⏪ Reverts", hidden: false}
+    {type: "chore", section: "🧹 Chores", hidden: false},
+    {type: "revert", section: "⏪ Reverts", hidden: false},
 ];
 
 const typesMap = new Map(types.map(t => [t.type, t]));
@@ -23,23 +23,51 @@ module.exports = {
             infile: "CHANGELOG.md",
             context: {
                 name: pkg.name,
-                pkg: {name: pkg.name}
+                pkg: {name: pkg.name},
             },
             presetConfig: {
-                types
+                types,
+            },
+            recommendedBumpOpts: {
+                whatBump(commits) {
+                    const patchTypes = new Set(["fix", "perf", "refactor", "chore", "ci", "build"]);
+                    const isBreaking = c => Array.isArray(c.notes) && c.notes.length > 0;
+
+                    // Major
+                    if (commits.some(isBreaking)) {
+                        return {level: 0, reason: "BREAKING CHANGE"};
+                    }
+
+                    // Minor
+                    if (commits.some(c => (c.type || "").toLowerCase() === "revert")) {
+                        return {level: 1, reason: "revert commits (policy → minor)"};
+                    }
+
+                    if (commits.some(c => (c.type || "").toLowerCase() === "feat")) {
+                        return {level: 1, reason: "feat commits"};
+                    }
+
+                    // Patch
+                    if (commits.some(c => patchTypes.has((c.type || "").toLowerCase()))) {
+                        return {level: 2, reason: "patch-level types (fix/perf/refactor/chore/ci/build)"};
+                    }
+
+                    return null;
+                },
             },
             writerOpts: {
-                headerPartial: "## 🚀 {{#if name}}{{name}} {{else}}{{#if @root.pkg}}{{@root.pkg.name}} {{/if}}{{/if}}v{{version}} ({{date}})\n\n",
+                headerPartial:
+                    "## 🚀 {{#if name}}`{{name}}` {{else}}{{#if @root.pkg}}`{{@root.pkg.name}}` {{/if}}{{/if}}v{{version}} ({{date}})\n\n",
                 mainTemplate:
                     "{{> header}}\n" +
                     "{{#each commitGroups}}\n### {{title}}\n\n{{#each commits}}{{> commit root=@root}}\n{{/each}}\n\n{{/each}}" +
                     "{{#unless commitGroups}}\n{{#each commits}}{{> commit root=@root}}\n{{/each}}{{/unless}}",
                 commitPartial:
-                    "{{#if type}}* {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{subject}}{{else}}{{header}}{{/if}}\n\n{{#if body}}{{{body}}}\n{{/if}}{{/if}}",
+                    "{{#if type}}* {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{subject}}{{else}}{{header}}{{/if}}{{#if href}} [`{{shorthash}}`]({{href}}){{/if}}\n\n{{#if body}}{{{body}}}\n{{/if}}{{/if}}",
                 groupBy: "type",
                 commitGroupsSort: "title",
                 commitsSort: ["scope", "subject"],
-                transform: (commit) => {
+                transform: commit => {
                     const nextCommit = {...commit};
 
                     const type = (nextCommit.type || "").toLowerCase();
@@ -56,13 +84,16 @@ module.exports = {
                     if (nextCommit.body) {
                         const body = nextCommit.body.replace(/\r\n/g, "\n").trim();
 
-                        nextCommit.body = body.split("\n").map(line => (line ? "  " + line : "")).join("\n");
+                        nextCommit.body = body
+                            .split("\n")
+                            .map(line => (line ? "  " + line : ""))
+                            .join("\n");
                     }
 
                     return nextCommit;
-                }
-            }
-        }
+                },
+            },
+        },
     },
     git: {
         requireCleanWorkingDir: true,
@@ -73,15 +104,15 @@ module.exports = {
         tag: true,
         tagName: "v${version}",
         tagAnnotation: "v${version}",
-        push: true
+        push: true,
     },
     npm: {
         publish: true,
-        versionArgs: ["--no-git-tag-version"]
+        versionArgs: ["--no-git-tag-version"],
     },
     github: {
         release: true,
-        releaseName: "🚀 `${name}` ${version} (${date,YYYY-MM-DD})"
+        releaseName: "🚀 `${name}` ${version} (${date,YYYY-MM-DD})",
     },
-    ci: true
+    ci: true,
 };
