@@ -122,7 +122,6 @@ module.exports = {
     },
     github: {
         release: true,
-        releaseName: "🚀 Release `${name}` v${version} (${date,YYYY-MM-DD})",
     },
     ci: true,
 };
