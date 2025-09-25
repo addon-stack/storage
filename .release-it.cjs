@@ -1,13 +1,13 @@
-// release-it configuration with Conventional Commits and custom templates
-// Docs: https://github.com/release-it/release-it and https://github.com/release-it/conventional-changelog
-
 /** @type {import('release-it').Config} */
 module.exports = {
     plugins: {
         "@release-it/conventional-changelog": {
             preset: "conventionalcommits",
             infile: "CHANGELOG.md",
-            // Customize sections and writer options
+            context: {
+                name: require("./package.json").name,
+                pkg: {name: require("./package.json").name}
+            },
             presetConfig: {
                 types: [
                     {type: "feat", section: "Features", hidden: false},
@@ -23,9 +23,11 @@ module.exports = {
                 ]
             },
             writerOpts: {
-                // Per-release header with package name, version and date
-                headerPartial: "## 🚀 {{#if @root.pkg}}{{@root.pkg.name}} {{/if}}{{version}} ({{date}})\n\n",
-                // Show full commit body for each entry
+                headerPartial: "## 🚀 {{#if name}}{{name}} {{else}}{{#if @root.pkg}}{{@root.pkg.name}} {{/if}}{{/if}}v{{version}} ({{date}})\n\n",
+                mainTemplate:
+                    "{{> header}}\n" +
+                    "{{#each commitGroups}}\n### {{title}}\n\n{{#each commits}}{{> commit root=@root}}\n{{/each}}\n\n{{/each}}" +
+                    "{{#unless commitGroups}}\n{{#each commits}}{{> commit root=@root}}\n{{/each}}{{/unless}}",
                 commitPartial:
                     "{{#if type}}* {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{subject}}{{else}}{{header}}{{/if}}\n\n{{~#if body}}{{{body}}}\n{{/if}}{{/if}}",
                 groupBy: "type",
@@ -47,14 +49,11 @@ module.exports = {
     },
     npm: {
         publish: true,
-        // Do not run npm version; release-it updates package.json itself
-        // Set to false to prevent creating a git tag via npm
         versionArgs: ["--no-git-tag-version"]
     },
     github: {
         release: true,
         releaseName: "🚀 ${name} ${version} (${date,YYYY-MM-DD})"
     },
-    // Default to CI mode in CI environments
     ci: true
 };
