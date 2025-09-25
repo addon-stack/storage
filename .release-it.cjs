@@ -43,7 +43,7 @@ module.exports = {
                     const nextCommit = {...commit};
 
                     const type = (nextCommit.type || "").toLowerCase();
-                    const value = typesMap[type];
+                    const value = typesMap.get(type);
 
                     if (value && value.hidden) {
                         return false;
