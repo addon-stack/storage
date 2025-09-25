@@ -64,7 +64,7 @@
       "biome check --write --unsafe",
       "npm run test:related --"
     ],
-    "*.{json,md,mdx,css,scss,html}": [
+    "*.{json,css,scss,html}": [
       "biome format --write"
     ]
   },

@@ -13,6 +13,11 @@
 * **release-it:** add shorthash fallback and adjust release name format ([af14a46](https://github.com/addon-stack/storage/commit/af14a46768cdf91c6938e141448250fa8db99bc7))
 
 
+* **release-it:** remove redundant `releaseName` field from config ([92bfca4](https://github.com/addon-stack/storage/commit/92bfca48d19c2dcbaa9b08c022f1e8b5d34b0a16))
+
+  - Deleted the `releaseName` field under the GitHub section as it is not used.
+  - Simplifies the configuration for release management.
+
 * **release-it:** update templates for consistent formatting and naming ([a8d5293](https://github.com/addon-stack/storage/commit/a8d52937443d61a92669d6908344a7f6996a50f2))
 
 
