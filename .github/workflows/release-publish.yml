@@ -16,6 +16,8 @@ jobs:
     secrets: inherit
 
   release:
+    name: Release Publish via release-it
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,9 +33,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
-      - name: Build
-        run: npm run build
 
       - name: Release (publish)
         env:
