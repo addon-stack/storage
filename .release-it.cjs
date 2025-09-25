@@ -9,7 +9,7 @@ const types = [
     {type: "test", section: "Tests", hidden: true},
     {type: "build", section: "🏗️ Build System", hidden: false},
     {type: "ci", section: "🤖 CI", hidden: false},
-    {type: "chore", section: "🧹 Chores", hidden: false},
+    {type: "chore", section: "🧹 Chores", hidden: true},
     {type: "revert", section: "⏪ Reverts", hidden: false},
 ];
 
@@ -119,6 +119,7 @@ module.exports = {
     npm: {
         publish: true,
         versionArgs: ["--no-git-tag-version"],
+        publishArgs: ["--provenance"],
     },
     github: {
         release: true,
