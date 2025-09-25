@@ -59,13 +59,13 @@ module.exports = {
             },
             writerOpts: {
                 headerPartial:
-                    "## 🚀 {{#if name}}`{{name}}` {{else}}{{#if @root.pkg}}`{{@root.pkg.name}}` {{/if}}{{/if}}v{{version}} ({{date}})\n\n",
+                    "## 🚀 Release {{#if name}}`{{name}}` {{else}}{{#if @root.pkg}}`{{@root.pkg.name}}` {{/if}}{{/if}}v{{version}} ({{date}})\n\n",
                 mainTemplate:
                     "{{> header}}\n" +
                     "{{#each commitGroups}}\n### {{title}}\n\n{{#each commits}}{{> commit root=@root}}\n{{/each}}\n\n{{/each}}" +
                     "{{#unless commitGroups}}\n{{#each commits}}{{> commit root=@root}}\n{{/each}}{{/unless}}",
                 commitPartial:
-                    "{{#if type}}* {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{subject}}{{else}}{{header}}{{/if}}{{#if href}} [`{{shorthash}}`]({{href}}){{/if}}\n\n{{#if body}}{{{body}}}\n{{/if}}{{/if}}",
+                    "{{#if type}}* {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{subject}}{{else}}{{header}}{{/if}}{{#if href}} ([{{shorthash}}]({{href}})){{/if}}\n\n{{#if body}}{{{body}}}\n{{/if}}{{/if}}",
                 groupBy: "type",
                 commitGroupsSort: "title",
                 commitsSort: ["scope", "subject"],
@@ -122,7 +122,7 @@ module.exports = {
     },
     github: {
         release: true,
-        releaseName: "🚀 `${name}` v${version} (${date,YYYY-MM-DD})",
+        releaseName: "🚀 Release `${name}` v${version} (${date,YYYY-MM-DD})",
     },
     ci: true,
 };
