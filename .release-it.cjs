@@ -96,6 +96,10 @@ module.exports = {
                         nextCommit.href = `${repoUrl}/commit/${nextCommit.hash}`;
                     }
 
+                    if (!nextCommit.shorthash && nextCommit.hash) {
+                        nextCommit.shorthash = nextCommit.hash.slice(0, 7);
+                    }
+
                     return nextCommit;
                 },
             },
@@ -118,7 +122,7 @@ module.exports = {
     },
     github: {
         release: true,
-        releaseName: "🚀 `${name}` ${version} (${date,YYYY-MM-DD})",
+        releaseName: "🚀 `${name}` v${version} (${date,YYYY-MM-DD})",
     },
     ci: true,
 };
