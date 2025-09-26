@@ -1,6 +1,6 @@
 # Changelog
 
-## 🚀 Release `@addon-core/storage` v0.3.5 (2025-09-25)
+## 🚀 Release `@addon-core/storage` v0.3.5 (2025-09-26)
 
 ### 🐛 Bug Fixed
 
@@ -10,9 +10,15 @@
   - Simplifies the configuration for release management.
 
 
-### 🧹 Chores
+### 🛠️ Refactoring
 
-* **release:** v0.3.4 [skip ci] ([7b9bf6d](https://github.com/addon-stack/storage/commit/7b9bf6d0211bbf0703a159489a631eeaa8d5cd2e))
+* update release-it config to hide unused sections ([1ce0a4d](https://github.com/addon-stack/storage/commit/1ce0a4d19dbba5c7a04806f6d683506970f44ceb))
+
+  - Updated configuration to hide `docs`, `build`, and `chore` sections in changelogs.
+  - Removed `chore` and `build` from patch types for version bump logic.
+  - Added `releaseName` field in GitHub releases for better naming consistency.
+
+* update release-it configuration for better npm publish ([ae54a77](https://github.com/addon-stack/storage/commit/ae54a77e7a603c8b842d2b2771bd847532e508f9))
 
 ## 🚀 Release `@addon-core/storage` v0.3.4 (2025-09-25)
 
@@ -85,225 +91,6 @@
   - Improved `writerOpts` templates for consistent formatting with fallback handling.
   - Adjusted `file` rules in `biome.json` for expanded file type handling in source and tests.
 
-* **release:** v0.3.2 [skip ci] ([dd442eb](https://github.com/addon-stack/storage/commit/dd442eb4953304fdf0498c6e2bd4a50765f116d7))
-
-
-* **release:** v0.3.3 [skip ci] ([2abab3a](https://github.com/addon-stack/storage/commit/2abab3a1d58d7ef86d54d794e9b128efbe24d0c9))
-
-
-* update configurations for formatting consistency and file handling ([699854d](https://github.com/addon-stack/storage/commit/699854d787f23fe14ffde3d11d2cd89cf4befa67))
-
-## 🚀 Release `@addon-core/storage` v0.3.3 (2025-09-25)
-
-### 🐛 Bug Fixed
-
-* **ci:** migrate from semantic-release to release-it ([157a07b](https://github.com/addon-stack/storage/commit/157a07ba454bd29d0cd5f2460774aa2209f229e9))
-
-  - Removed all semantic-release-related configurations and workflows.
-  - Added release-it configurations for preview and publish workflows.
-  - Updated package dependencies to replace semantic-release with release-it.
-
-* **release-it:** add shorthash fallback and adjust release name format ([af14a46](https://github.com/addon-stack/storage/commit/af14a46768cdf91c6938e141448250fa8db99bc7))
-
-
-* **release-it:** update templates for consistent formatting and naming ([a8d5293](https://github.com/addon-stack/storage/commit/a8d52937443d61a92669d6908344a7f6996a50f2))
-
-
-* **release-it:** use `Map.get` for type lookup in commit transformation ([6b697be](https://github.com/addon-stack/storage/commit/6b697bea35dc4ef1ee22e0150da009eda4300ccf))
-
-
-
-### 🤖 CI
-
-* add CI job and update npm install commands ([009ec1f](https://github.com/addon-stack/storage/commit/009ec1ff2dd3e9d23e6c6019b01934b07f98622b))
-
-  - Introduced a reusable `ci` job in `release-publish.yml` and `release-prepare.yml` workflows.
-  - Updated `npm ci` to `npm install` for dependency installation in both workflows.
-
-* update workflows for release management and clean up dependencies ([85da77d](https://github.com/addon-stack/storage/commit/85da77d8ed7259920651f1d9099245a95edbb727))
-
-  - Added `name` and `needs: ci` fields in `release-publish.yml` and `release-prepare.yml`.
-  - Removed redundant `npm run build` step from `release-publish.yml`.
-  - Cleaned up unused dependencies from `package-lock.json` for better maintenance.
-
-* update workflows for release preparation and publishing ([af18584](https://github.com/addon-stack/storage/commit/af1858453d8459f8ffd7245d7468a20b95a7adfe))
-
-  - Added Git user configuration step in `release-publish.yml` for commits made by workflows.
-  - Enabled `hotfix/**` branch triggering in `release-prepare.yml` for flexible hotfix management.
-
-
-### 🧹 Chores
-
-* **release-it:** add repoUrl for commit links in changelogs ([5835e68](https://github.com/addon-stack/storage/commit/5835e6857f46fa2f055b97682f135e4f85c1f6ea))
-
-
-* **release-it:** enhance configuration for structured release notes ([405a947](https://github.com/addon-stack/storage/commit/405a9473ce543c5f7af15d26438eefba7aae132c))
-
-  - Added `context` to include package name in changelog and header templates.
-  - Updated `headerPartial` and introduced `mainTemplate` for improved formatting.
-  - Refined `commitPartial` to ensure proper handling of commit details.
-  - Simplified npm and GitHub release configurations for consistency.
-
-* **release-it:** refactor types configuration and enhance commit processing ([d11d849](https://github.com/addon-stack/storage/commit/d11d849daaca350d667b7f8a91f1eec44a2fa368))
-
-  - Refactored type definitions into a shared `types` array with additional metadata.
-  - Introduced `typesMap` for better type lookup and handling during commit transformation.
-  - Updated `context` to reuse parsed package information from `package.json`.
-  - Enhanced `transform` to filter out hidden commit types and reformat body content.
-  - Adjusted sorting and templates for structured and consistent release notes generation.
-
-* **release-it:** refine configuration for enhanced changelogs and bump logic ([034ea8a](https://github.com/addon-stack/storage/commit/034ea8ab24d008241e4908b2e914ccb7ab72b8b9))
-
-  - Made "chore" commits visible in changelogs, aligning with structured release notes.
-  - Enhanced `recommendedBumpOpts` to classify commit types and prioritize breaking changes.
-  - Improved `writerOpts` templates for consistent formatting with fallback handling.
-  - Adjusted `file` rules in `biome.json` for expanded file type handling in source and tests.
-
-* **release:** v0.3.2 [skip ci] ([dd442eb](https://github.com/addon-stack/storage/commit/dd442eb4953304fdf0498c6e2bd4a50765f116d7))
-
-
-* update configurations for formatting consistency and file handling ([699854d](https://github.com/addon-stack/storage/commit/699854d787f23fe14ffde3d11d2cd89cf4befa67))
-
-## 🚀 Release `@addon-core/storage` v0.3.2 (2025-09-25)
-
-### 🐛 Bug Fixed
-
-* **ci:** migrate from semantic-release to release-it ([157a07b](https://github.com/addon-stack/storage/commit/157a07ba454bd29d0cd5f2460774aa2209f229e9))
-
-  - Removed all semantic-release-related configurations and workflows.
-  - Added release-it configurations for preview and publish workflows.
-  - Updated package dependencies to replace semantic-release with release-it.
-
-* **release-it:** add shorthash fallback and adjust release name format ([af14a46](https://github.com/addon-stack/storage/commit/af14a46768cdf91c6938e141448250fa8db99bc7))
-
-
-* **release-it:** update templates for consistent formatting and naming ([a8d5293](https://github.com/addon-stack/storage/commit/a8d52937443d61a92669d6908344a7f6996a50f2))
-
-
-* **release-it:** use `Map.get` for type lookup in commit transformation ([6b697be](https://github.com/addon-stack/storage/commit/6b697bea35dc4ef1ee22e0150da009eda4300ccf))
-
-
-
-### 🤖 CI
-
-* add CI job and update npm install commands ([009ec1f](https://github.com/addon-stack/storage/commit/009ec1ff2dd3e9d23e6c6019b01934b07f98622b))
-
-  - Introduced a reusable `ci` job in `release-publish.yml` and `release-prepare.yml` workflows.
-  - Updated `npm ci` to `npm install` for dependency installation in both workflows.
-
-* update workflows for release management and clean up dependencies ([85da77d](https://github.com/addon-stack/storage/commit/85da77d8ed7259920651f1d9099245a95edbb727))
-
-  - Added `name` and `needs: ci` fields in `release-publish.yml` and `release-prepare.yml`.
-  - Removed redundant `npm run build` step from `release-publish.yml`.
-  - Cleaned up unused dependencies from `package-lock.json` for better maintenance.
-
-
-### 🧹 Chores
-
-* **release-it:** add repoUrl for commit links in changelogs ([5835e68](https://github.com/addon-stack/storage/commit/5835e6857f46fa2f055b97682f135e4f85c1f6ea))
-
-
-* **release-it:** enhance configuration for structured release notes ([405a947](https://github.com/addon-stack/storage/commit/405a9473ce543c5f7af15d26438eefba7aae132c))
-
-  - Added `context` to include package name in changelog and header templates.
-  - Updated `headerPartial` and introduced `mainTemplate` for improved formatting.
-  - Refined `commitPartial` to ensure proper handling of commit details.
-  - Simplified npm and GitHub release configurations for consistency.
-
-* **release-it:** refactor types configuration and enhance commit processing ([d11d849](https://github.com/addon-stack/storage/commit/d11d849daaca350d667b7f8a91f1eec44a2fa368))
-
-  - Refactored type definitions into a shared `types` array with additional metadata.
-  - Introduced `typesMap` for better type lookup and handling during commit transformation.
-  - Updated `context` to reuse parsed package information from `package.json`.
-  - Enhanced `transform` to filter out hidden commit types and reformat body content.
-  - Adjusted sorting and templates for structured and consistent release notes generation.
-
-* **release-it:** refine configuration for enhanced changelogs and bump logic ([034ea8a](https://github.com/addon-stack/storage/commit/034ea8ab24d008241e4908b2e914ccb7ab72b8b9))
-
-  - Made "chore" commits visible in changelogs, aligning with structured release notes.
-  - Enhanced `recommendedBumpOpts` to classify commit types and prioritize breaking changes.
-  - Improved `writerOpts` templates for consistent formatting with fallback handling.
-  - Adjusted `file` rules in `biome.json` for expanded file type handling in source and tests.
-
-* update configurations for formatting consistency and file handling ([699854d](https://github.com/addon-stack/storage/commit/699854d787f23fe14ffde3d11d2cd89cf4befa67))
-
-## 🚀 0.3.1
-
-
-* re-enable and refine writerOpts for release configuration- Uncommented and refined `writerOpts` in `shared.cjs` for structured release notes.
-- Enhanced `commitPartial` to properly handle `subject` fallback and `body` rendering.
-- Restored and fine-tuned sorting for `type`, `scope`, and `subject` fields.
-* **shared.cjs:** comment out writerOpts in release configuration- Temporarily disabled `writerOpts` block by commenting it out in `shared.cjs`.
-- Ensures configuration is bypassed while retaining the original logic for reference.
-* **ci:** improve commitPartial and release notes grouping logic- Updated `commitPartial` in `shared.cjs` to include `type` and `scope` formatting enhancements.
-- Enabled grouping of commits by `type` with sorting on `scope` and `subject`.
-- Adjusted `commitGroupsSort` and `commitsSort` for better structured release notes.
-* **ci:** streamline release messaging and enhance template structure- Updated `committed.cjs` to remove release notes from commit message template.
-- Improved `shared.cjs` by adjusting `commitPartial` to use headers for better readability.
-- Added `headerPartial` to include version information in generated release notes.
-* **ci:** update release-sync workflow and enhance commitPartial- Updated `release-sync.yml` to use `devmasx/merge-branch@master` for branch syncing.
-- Migrated workflow syntax to use `from_branch` and `target_branch` for clarity.
-- Improved `commitPartial` in `shared.cjs` by adjusting templates and ensuring better alignment.
-- Enabled `hidden` attribute for all Semantic Release type presets.
-
-## 0.3.0 (2025-09-24)
-
-**ci:** add workflow to sync main into develop upon release
-
-- Introduced `release-sync.yml` to automatically merge `main` into `develop` post-release.
-- Utilizes `tibdex/merge-branch@v3` to handle the branch sync process.
-- Triggers on successful completion of the `Release Publish` workflow.
-**ci:** enhance commitPartial to properly handle type and scope checks
-
-- Updated `commitPartial` template in `shared.cjs` to include a type check.
-- Ensures release notes are generated only if a valid `type` is present.
-add keywords, author, and contributors metadata
-
-- Added `keywords` for improved discoverability of the package.
-- Included `author` and `contributors` fields for better attribution.
-
-## <small>0.2.3 (2025-09-23)</small>
-
-Merge branch 'main' into develop
-
-Merge branch 'release/next'
-
-Merge remote-tracking branch 'origin/main'
-
-standardize indentation and adjust lint-staged configuration
-
-- Updated indentation in all Semantic Release config files for consistency.
-- Standardized import format for `commonPlugins` across configs.
-- Enhanced `lint-staged` and `biome.json` to include `.cjs` and `.mjs` file formats.
-restructure Semantic Release configs and update workflows
-
-- Moved release configs to `release` directory for better organization.
-- Split shared plugins into `shared.cjs` for reduced duplication across configs.
-- Updated `release-publish.yml` and `release-prepare.yml` to reference new config paths.
-- Removed outdated `semantic-release.config.cjs` and `semantic-release.preview.cjs`.
-- Excluded `src/types.ts` from the build entrypoint in `tsup.config.ts`.
-migrate build tooling to `tsup` and update dependencies
-
-- Replaced `@rslib/core` build config with `tsup` for a streamlined setup.
-- Removed `.changeset` directory and `rslib.config.ts` as part of build tool migration.
-- Updated `semantic-release.preview.cjs` indentation for consistency.
-- Added `esbuild-fix-imports-plugin` and `tsup` to `devDependencies` for improved module bundling.
-- Updated import in `useStorage.ts` to reflect proper module export.
-
-## [0.2.2](https://github.com/addon-stack/storage/compare/v0.2.1...v0.2.2) (2025-09-23)
-
-
-### Bug Fixes
-
-* remove unused `--debug` flag from Semantic Release dry run ([9108ff3](https://github.com/addon-stack/storage/commit/9108ff3e5a257053a8f4c969d308e44714b20dec))
-
-# @addon-core/storage
-
-## 0.2.1
-
-### Patch Changes
-
-- [`e39a7db`](https://github.com/addon-stack/storage/commit/e39a7dbfe1c91bdb6ee6f9f50e08215304fd9ed8) Thanks [@addon-stack](https://github.com/addon-stack)! - update release workflow to run build step before publishing
 
 ## 0.2.0
 

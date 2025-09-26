@@ -20,7 +20,8 @@
     "firefox",
     "edge",
     "opera",
-    "safari"
+    "safari",
+    "react"
   ],
   "author": "Addon Stack <addonbonedev@gmail.com>",
   "contributors": [

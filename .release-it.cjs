@@ -5,11 +5,11 @@ const types = [
     {type: "fix", section: "🐛 Bug Fixed", hidden: false},
     {type: "perf", section: "⚡️ Performance Improvements", hidden: false},
     {type: "refactor", section: "🛠️ Refactoring", hidden: false},
-    {type: "docs", section: "📝 Documentation", hidden: false},
+    {type: "docs", section: "📝 Documentation", hidden: true},
     {type: "test", section: "Tests", hidden: true},
-    {type: "build", section: "🏗️ Build System", hidden: false},
+    {type: "build", section: "🏗️ Build System", hidden: true},
     {type: "ci", section: "🤖 CI", hidden: false},
-    {type: "chore", section: "🧹 Chores", hidden: false},
+    {type: "chore", section: "🧹 Chores", hidden: true},
     {type: "revert", section: "⏪ Reverts", hidden: false},
 ];
 
@@ -32,7 +32,7 @@ module.exports = {
             },
             recommendedBumpOpts: {
                 whatBump(commits) {
-                    const patchTypes = new Set(["fix", "perf", "refactor", "chore", "ci", "build"]);
+                    const patchTypes = new Set(["fix", "perf", "refactor", "ci"]);
                     const isBreaking = c => Array.isArray(c.notes) && c.notes.length > 0;
 
                     // Major
@@ -119,9 +119,11 @@ module.exports = {
     npm: {
         publish: true,
         versionArgs: ["--no-git-tag-version"],
+        publishArgs: ["--provenance"],
     },
     github: {
         release: true,
+        releaseName: "v${version}",
     },
     ci: true,
 };
