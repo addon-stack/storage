@@ -1,5 +1,17 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.3.6 (2025-09-26)
+
+### 🛠️ Refactoring
+
+* update release-it config to hide unused sections ([1ce0a4d](https://github.com/addon-stack/storage/commit/1ce0a4d19dbba5c7a04806f6d683506970f44ceb))
+
+  - Updated configuration to hide `docs`, `build`, and `chore` sections in changelogs.
+  - Removed `chore` and `build` from patch types for version bump logic.
+  - Added `releaseName` field in GitHub releases for better naming consistency.
+
+* update release-it configuration for better npm publish ([ae54a77](https://github.com/addon-stack/storage/commit/ae54a77e7a603c8b842d2b2771bd847532e508f9))
+
 ## 🚀 Release `@addon-core/storage` v0.3.5 (2025-09-26)
 
 ### 🐛 Bug Fixed
