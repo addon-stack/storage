@@ -70,7 +70,8 @@
     ]
   },
   "overrides": {
-    "glob": "^7.2.3"
+    "glob": "^9.3.5",
+    "source-map": "npm:source-map-js@^1.2.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.3",
@@ -97,7 +98,7 @@
     "typescript": "^5.9.2"
   },
   "dependencies": {
-    "@adnbn/browser": "^0.1.7",
+    "@addon-core/browser": "^0.2.1",
     "dequal": "^2.0.3"
   },
   "peerDependencies": {

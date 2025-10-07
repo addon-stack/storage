@@ -1,4 +1,4 @@
-import {browser, throwRuntimeError} from "@adnbn/browser";
+import {browser, throwRuntimeError} from "@addon-core/browser";
 import MonoStorage from "./MonoStorage";
 import type {StorageProvider, StorageState, StorageWatchOptions} from "../types";
 
