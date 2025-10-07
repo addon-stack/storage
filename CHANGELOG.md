@@ -1,5 +1,71 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.4.0 (2025-10-07)
+
+
+### ✨ Features
+
+* enhance watch callbacks with key differentiation ([97e4557](https://github.com/addon-stack/storage/commit/97e45572da416e9d04619db1b5715a2ecf2595d8))
+
+  - Updated `watch` to include key-specific callbacks and pass key names to global callbacks.
+  - Refactored `StorageWatchOptions` into separate callback types for consistency.
+  - Adjusted tests to validate key-specific callback behavior and new parameters.
+  - Improved error handling in `AbstractStorage` for unhandled key changes.
+
+
+
+### 📝 Documentation
+
+* update README and CONTRIBUTING guidelines for clarity ([aa79667](https://github.com/addon-stack/storage/commit/aa79667541fb440e1f1ebf45a24c06e650001e77))
+
+  - Expanded peer dependency details in README (including @types/react-dom).
+  - Updated descriptions for `watch()` callbacks and `getAll()` behavior.
+  - Clarified SecureStorage key formatting for namespaced storage.
+  - Improved MonoStorage `watch()` explanation with deep comparison info.
+  - Revised CONTRIBUTING.md to align with a Simplified GitFlow model.
+  - Removed references to `release/*` and `hotfix/*` branches in release process.
+
+
+
+### 🤖 CI
+
+* replace release workflows with unified release pipeline ([a39f5d4](https://github.com/addon-stack/storage/commit/a39f5d4a4d13254e94724608161d2b8edcb8f927))
+
+  - Consolidated `release-prepare.yml` and `release-publish.yml` into a single `release.yml`.
+  - Streamlined CI with dynamic matrix computation for better flexibility and coverage.
+  - Updated `.release-it.cjs` with enhanced contributor logic and changelog formatting.
+  - Introduced `.gitattributes` to enforce consistent line endings across the repo.
+  - Improved biome configuration to exclude coverage and dist directories.
+
+
+
+### 🧹 Chores
+
+* update dependencies and replace @adnbn/browser with @addon-core/browser ([fa3bbaa](https://github.com/addon-stack/storage/commit/fa3bbaad4f913d3b42365239694023442831ac38))
+
+  - Updated `@addon-core/browser` to v0.2.1, replacing `@adnbn/browser`.
+  - Bumped multiple Jest-related dependencies to v30.2.0 for consistency.
+  - Included new transitive dependency `signal-exit` v4.1.0.
+
+
+
+### 🛠️ Refactoring
+
+* replace shallowEqual with `dequal` for deep equality checks ([d2a5e43](https://github.com/addon-stack/storage/commit/d2a5e43fcfa8100d6dee954293c4f2ec596f9846))
+
+  - Removed custom `shallowEqual` method in favor of using `dequal` for better accuracy.
+  - Updated `MonoStorage` logic to apply deep equality checks with imported `dequal`.
+  - Adjusted `.gitignore` with additional entries for environment and build artifacts.
+  - Updated `package-lock.json` with `dequal` dependency and removed unused modules.
+
+
+
+
+### 🙌 Contributors
+
+- [Addon Stack](https://github.com/addon-stack) (@addon-stack) — 5 commits
+- [Addon Stack](addonbonedev@gmail.com) — 2 commits
+
 ## 🚀 Release `@addon-core/storage` v0.3.6 (2025-09-26)
 
 ### 🛠️ Refactoring
