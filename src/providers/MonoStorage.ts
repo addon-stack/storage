@@ -91,26 +91,33 @@ export default class MonoStorage<T extends StorageState, K extends string> imple
     public watch(options: StorageWatchOptions<T>): () => void {
         return this.storage.watch({
             [this.key]: (newValue: Partial<T> | undefined, oldValue: Partial<T> | undefined) => {
-                const newObj = newValue && typeof newValue === "object" ? newValue : {};
-                const oldObj = oldValue && typeof oldValue === "object" ? oldValue : {};
+                const newObj: Partial<T> = newValue && typeof newValue === "object" ? newValue : {};
+                const oldObj: Partial<T> = oldValue && typeof oldValue === "object" ? oldValue : {};
+
+                const keys = new Set<string>([...Object.keys(oldObj), ...Object.keys(newObj)]);
 
                 if (typeof options === "function") {
-                    options(newObj, oldObj);
+                    for (const key of keys) {
+                        const newValueByKey = newObj[key];
+                        const oldValueByKey = oldObj[key];
+
+                        if (!this.shallowEqual(newValueByKey, oldValueByKey)) {
+                            options(newValueByKey, oldValueByKey, key);
+                        }
+                    }
 
                     return;
                 }
 
-                const keys = new Set<string>([...Object.keys(oldObj as object), ...Object.keys(newObj as object)]);
-
-                for (const k of keys) {
-                    const cb = (options as Record<string, (n: any, o: any) => void>)[k];
+                for (const key of keys) {
+                    const cb = options[key];
 
                     if (!cb) {
                         continue;
                     }
 
-                    const n = (newObj as any)[k];
-                    const o = (oldObj as any)[k];
+                    const n = (newObj as any)[key];
+                    const o = (oldObj as any)[key];
 
                     if (!this.shallowEqual(n, o)) {
                         cb(n, o);

@@ -14,6 +14,7 @@ export default class SecureStorage<T extends StorageState> extends AbstractStora
 
     constructor({secureKey, ...options}: SecureStorageOptions = {}) {
         super(options);
+
         this.secureKey = secureKey?.trim() || "SecureKey";
     }
 

@@ -112,7 +112,7 @@ test("clear removes the physical key", async () => {
 });
 
 describe("watch", () => {
-    test("global callback receives whole object on changes", () => {
+    test("global callback is called per changed inner key and provides the key", () => {
         const mono = new MonoStorage<BucketState, typeof key>(key, base);
         const cb = jest.fn();
         mono.watch(cb);
@@ -125,7 +125,8 @@ describe("watch", () => {
             newValue: {a: 2, c: "x"},
         });
 
-        expect(cb).toHaveBeenCalledWith({a: 2, c: "x"}, {a: 1});
+        expect(cb).toHaveBeenCalledWith(2, 1, "a");
+        expect(cb).toHaveBeenCalledWith("x", undefined, "c");
     });
 
     test("keyed callbacks fan-out only on changed keys", () => {

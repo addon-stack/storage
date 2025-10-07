@@ -180,8 +180,8 @@ describe("watch method", () => {
             newValue: 80,
         });
 
-        expect(globalCallback).toHaveBeenCalledWith(80, 50);
-        expect(globalCallback).toHaveBeenCalledWith("dark", "light");
+        expect(globalCallback).toHaveBeenCalledWith(80, 50, "volume");
+        expect(globalCallback).toHaveBeenCalledWith("dark", "light", "theme");
     });
 
     test("calls both key and global callbacks", async () => {
@@ -204,8 +204,8 @@ describe("watch method", () => {
         });
 
         expect(keyCallback).toHaveBeenCalledWith("dark", "light");
-        expect(globalCallback).toHaveBeenCalledWith(80, 50);
-        expect(globalCallback).toHaveBeenCalledWith("dark", "light");
+        expect(globalCallback).toHaveBeenCalledWith(80, 50, "volume");
+        expect(globalCallback).toHaveBeenCalledWith("dark", "light", "theme");
     });
 });
 

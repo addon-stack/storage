@@ -201,12 +201,33 @@ export default abstract class AbstractStorage<T extends StorageState> implements
 
     public watch<P extends T>(options: StorageWatchOptions<P>): () => void {
         const listener: onChangedListener = (changes: Record<string, StorageChange>, area: AreaName) => {
-            if (area !== this.area) return;
+            if (area !== this.area) {
+                return;
+            }
 
-            Object.entries(changes).forEach(async ([key, change]) => {
-                if (this.isKeyValid(key)) {
-                    this.handleChange(key, change, options);
-                }
+            const entries = Object.entries(changes).reduce(
+                (acc, [key, change]) => {
+                    if (this.isKeyValid(key)) {
+                        acc.push({key, task: this.handleChange(key, change, options)});
+                    }
+
+                    return acc;
+                },
+                [] as {key: string; task: Promise<void>}[]
+            );
+
+            Promise.allSettled(entries.map(e => e.task)).then(results => {
+                results.forEach((result, i) => {
+                    if (result.status === "rejected") {
+                        const key = entries[i]?.key ?? "(unknown)";
+                        const namespace = this.namespace ? ` with namespace "${this.namespace}"` : "";
+
+                        console.error(
+                            `Storage watch error: failed to handle change for key "${key}" in area "${this.area}"${namespace}:`,
+                            result.reason
+                        );
+                    }
+                });
             });
         };
 
@@ -225,7 +246,7 @@ export default abstract class AbstractStorage<T extends StorageState> implements
         const originalKey = this.getOriginalKey(key);
 
         if (typeof options === "function") {
-            options(newValue, oldValue);
+            options(newValue, oldValue, originalKey);
         } else if (options[originalKey]) {
             options[originalKey]?.(newValue, oldValue);
         }
