@@ -1,11 +1,16 @@
 export type StorageState = Record<string, any>;
 
-// prettier-ignore
-export type StorageWatchOptions<T> =
-    | {
-          [K in keyof T]?: (newValue: T[K] | undefined, oldValue: T[K] | undefined) => void;
-      }
-    | ((newValue: Partial<T>, oldValue: Partial<T>) => void);
+export type StorageWatchCallback<T> = <K extends keyof T>(
+    newValue: T[K] | undefined,
+    oldValue: T[K] | undefined,
+    key: K
+) => void;
+
+export type StorageWatchKeyCallback<T> = {
+    [K in keyof T]?: (newValue: T[K] | undefined, oldValue: T[K] | undefined) => void;
+};
+
+export type StorageWatchOptions<T> = StorageWatchKeyCallback<T> | StorageWatchCallback<T>;
 
 // prettier-ignore
 export interface StorageProvider<T extends StorageState> {

@@ -12,7 +12,7 @@ Please also read and follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Table of contents
 - Principles and workflow
-- Git branching model (GitFlow)
+- Git branching model (Simplified GitFlow)
 - Commit messages (Conventional Commits)
 - What affects versioning (SemVer policy)
 - Release process (release-it + GitHub Actions)
@@ -26,26 +26,22 @@ Please also read and follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Principles and workflow
 We value clarity, automation, and a predictable release cadence. We use:
-- GitFlow for branching and release discipline.
+- Simplified GitFlow (no release/* or hotfix/* branches) for branching and release discipline.
 - Conventional Commits to generate CHANGELOG and calculate version bumps.
 - release-it to cut releases and publish to npm and GitHub.
 - Biome for formatting and linting; Jest for tests.
 
-## Git branching model (GitFlow)
-We follow a pragmatic GitFlow variant:
-- `main` — production-ready branch. Commits here trigger a publish release.
-- `develop` — integration branch for upcoming work (default target for feature PRs).
+## Git branching model (Simplified GitFlow)
+We follow a simplified GitFlow:
+- `main` — production-ready branch. Merging a PR into `main` triggers a publish release.
+- `develop` — integration branch for upcoming work (default target for feature PRs). After each successful release, we merge `main` back into `develop` to keep versions and files in sync.
 - `feature/*` — feature branches cut from `develop`. Example: `feature/secure-storage-iv`.
-- `release/*` — release preparation branches cut from `develop`. Example: `release/0.4.0`.
-- `hotfix/*` — urgent fixes cut from `main`. Example: `hotfix/deserialize-crash`.
 
 Typical flows:
 - New work: branch from `develop` into `feature/<name>`, open PR into `develop`.
-- Release: maintainers create `release/x.y.z` from `develop`, stabilize, then merge to `main`.
-- Hotfix: branch from `main` into `hotfix/<name>`, then merge back to `main` (and forward-merge into `develop`).
+- Release: open a pull request from the chosen base branch (typically `develop`) into `main`. After merge, CI publishes a new version and npm package. Then merge `main` back into `develop` to sync.
 
-Note: Our CI includes a release preview for `release/*` and `hotfix/*` branches and performs a publish release on
-`main`.
+Note: We do not use `release/*` or `hotfix/*` branches.
 
 ## Commit messages (Conventional Commits)
 We enforce Conventional Commits via commitlint. The general format is:
@@ -75,7 +71,7 @@ Examples:
 - `fix(secure): handle invalid cipher text in decrypt()`
 - `perf(mono): reduce allocations in shallowEqual()`
 - `docs: expand README with React adapter examples`
-- `ci: run release preview on release/* branches`
+- `ci: update release pipeline`
 
 Breaking changes:
 - Indicate with `!` after the type or include a `BREAKING CHANGE:` footer.
@@ -99,10 +95,10 @@ Notes:
 ## Release process (release-it + GitHub Actions)
 We automate releases with [release-it](https://github.com/release-it/release-it) and GitHub Actions.
 
-Branches:
-- `release/*` and `hotfix/*`: CI runs a Release Preview (no tag, no publish). This validates versioning and the
+Branches/Triggers:
+- Pull requests into `main`: CI runs checks and may run a release dry-run (no tag, no publish) to validate versioning and the
   generated notes.
-- `main`: CI runs a Release Publish that will:
+- `main` (on merge): CI runs a Release Publish that will:
   - determine the next version from commits (SemVer + Conventional Commits),
   - update `CHANGELOG.md`,
   - create a Git tag `vX.Y.Z` and a GitHub Release,
@@ -114,7 +110,9 @@ Local release commands (maintainers):
 
 Important:
 - Do not manually edit `CHANGELOG.md` for released versions — it’s generated.
-- Ensure `develop` is up to date before cutting `release/*`.
+- Ensure the intended changes are in `develop` (or the chosen base branch) before opening a PR to `main`.
+- After a successful release, merge `main` back into `develop` to keep versions and files in sync.
+- We do not use `release/*` or `hotfix/*` branches.
 
 ## Code style and quality
 We use [Biome](https://biomejs.dev/) for formatting and linting. Key rules from `biome.json`:
@@ -160,7 +158,7 @@ Authoring tests:
 
 ## Pull requests
 Checklist for contributors:
-- [ ] Branch from `develop` (or `hotfix/*` from `main` for urgent fixes).
+- [ ] Branch from `develop`.
 - [ ] Follow code style and run locally:
   - `npm run format:check && npm run lint && npm run typecheck && npm test`
 - [ ] Write or update tests when applicable.

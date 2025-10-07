@@ -1,15 +1,18 @@
-# Local
 .DS_Store
-*.local
-*.log*
-
-# Dist
-node_modules
-dist/
-.rslib/
-storybook-static
-
-# IDE
-.vscode/*
-!.vscode/extensions.json
+.env
+.env.*
 .idea
+.output
+addon
+*.log
+/.vscode/
+/docs/.vitepress/cache
+coverage
+dist
+package
+node_modules
+TODOs.md
+stats.html
+.tool-versions
+.cache
+*-stats.txt

@@ -36,6 +36,7 @@ export default class Storage<T extends StorageState> extends AbstractStorage<T> 
 
     protected getNamespaceOfKey(key: string): string | undefined {
         const fullKeyParts = key.split(this.separator);
+
         return fullKeyParts.length === 2 ? fullKeyParts[0] : undefined;
     }
 }

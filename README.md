@@ -29,7 +29,7 @@ pnpm add @addon-core/storage
 Requirements and environment:
 
 - The library targets browser extension environments where chrome.storage is available.
-- For the React adapter, peer dependencies react and react-dom are required (optionally @types/react for TypeScript).
+- For the React adapter, peer dependencies react and react-dom are required (optionally @types/react and @types/react-dom for TypeScript).
 - SecureStorage relies on the Web Crypto API (crypto.subtle, AES‑GCM), available in modern browsers.
 
 ## Quick start
@@ -52,7 +52,7 @@ await storage.clear(); // clears only keys from the current namespace (if set)
 The package exports:
 
 - Provider classes: `Storage`, `SecureStorage`, `MonoStorage`
-- Types: `StorageProvider`, `StorageState`, `StorageWatchOptions`
+- Types: `StorageProvider`, `StorageState`, `StorageWatchOptions`, `StorageWatchCallback`, `StorageWatchKeyCallback`
 - React adapter: `useStorage` from the submodule `@addon-core/storage/react`
 
 ### Creating a provider
@@ -84,7 +84,7 @@ const secure = SecureStorage.Local<{ token?: string }>({secureKey: "MyStrongKey"
 Provider options:
 
 - `area?: "local" | "session" | "sync" | "managed"` — storage area (defaults to `local`)
-- `namespace?: string` — optional namespace; keys become `namespace:key`
+- `namespace?: string` — optional namespace; keys become `namespace:key` (for `SecureStorage`: `secure:namespace:key`)
 - For `SecureStorage`: additionally `secureKey?: string` — a string used to derive the encryption key.
 
 ### Provider methods
@@ -111,8 +111,8 @@ Where `StorageWatchOptions<T>` is either a map of per-key callbacks or a single 
 
 ```ts
 // Option 1: a single handler for all changes
-const unsubscribe = storage.watch((next, prev) => {
-    console.log("changed", {next, prev});
+const unsubscribe = storage.watch((next, prev, key) => {
+    console.log("changed", {key, next, prev});
 });
 
 // Option 2: specific handlers per key
@@ -131,7 +131,8 @@ un(); // unsubscribe
 
 Notes:
 
-- `getAll()` returns only keys that belong to the current provider (considering namespace and type).
+- `getAll()` returns entries (key–value pairs) scoped to the current provider (area, namespace, provider kind) and resolves to `Partial<T>`.
+- In the single-callback form of `watch()`, the third argument is the `key` that changed.
 - `SecureStorage` transparently encrypts/decrypts values. They are stored as strings, while you work with original types
   externally.
 
@@ -168,7 +169,7 @@ await mono.set("a", 1);
 Highlights:
 
 - When the last value in the “bucket” is removed, the top-level key is cleared entirely.
-- `watch()` in MonoStorage invokes callbacks only on actual value changes (shallow comparison).
+- `watch()` in MonoStorage invokes callbacks only on actual value changes (deep/structural comparison).
 
 ### SecureStorage — value encryption
 
