@@ -25,14 +25,17 @@
     "includes": [
       "src/**/*.{ts,tsx,js,jsx}",
       "!src/**/*.test.{ts,tsx,js,jsx}",
-      "**/*.{json,jsonc,md,mdx,cjs,mjs}"
+      "**/*.{json,jsonc,md,mdx,cjs,mjs}",
+      "!coverage/**",
+      "!dist/**"
     ]
   },
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 4,
     "lineWidth": 120,
-    "bracketSpacing": false
+    "bracketSpacing": false,
+    "lineEnding": "lf"
   },
   "javascript": {
     "formatter": {
