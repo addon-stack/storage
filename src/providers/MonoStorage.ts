@@ -1,3 +1,4 @@
+import {dequal as isEqual} from "dequal/lite";
 import type {StorageProvider, StorageState, StorageWatchOptions} from "../types";
 
 export default class MonoStorage<T extends StorageState, K extends string> implements StorageProvider<T> {
@@ -101,7 +102,7 @@ export default class MonoStorage<T extends StorageState, K extends string> imple
                         const newValueByKey = newObj[key];
                         const oldValueByKey = oldObj[key];
 
-                        if (!this.shallowEqual(newValueByKey, oldValueByKey)) {
+                        if (!isEqual(newValueByKey, oldValueByKey)) {
                             options(newValueByKey, oldValueByKey, key);
                         }
                     }
@@ -119,36 +120,11 @@ export default class MonoStorage<T extends StorageState, K extends string> imple
                     const n = (newObj as any)[key];
                     const o = (oldObj as any)[key];
 
-                    if (!this.shallowEqual(n, o)) {
+                    if (!isEqual(n, o)) {
                         cb(n, o);
                     }
                 }
             },
         } as unknown as StorageWatchOptions<Record<K, Partial<T>>>);
-    }
-
-    private shallowEqual(a: any, b: any): boolean {
-        if (Object.is(a, b)) {
-            return true;
-        }
-
-        if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) {
-            return false;
-        }
-
-        const ak = Object.keys(a);
-        const bk = Object.keys(b);
-
-        if (ak.length !== bk.length) {
-            return false;
-        }
-
-        for (const k of ak) {
-            if (!Object.is(a[k], b[k])) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }
