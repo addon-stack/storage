@@ -142,6 +142,7 @@ module.exports = () => {
             skipChecks: true,
             provenance: true,
             access: "public",
+            registry: "https://registry.npmjs.org/",
             versionArgs: ["--no-git-tag-version"],
         },
 
