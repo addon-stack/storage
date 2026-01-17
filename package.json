@@ -5,7 +5,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/addon-stack/storage"
+    "url": "git+https://github.com/addon-stack/storage.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://github.com/addon-stack/storage",
   "bugs": {
