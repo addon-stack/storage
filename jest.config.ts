@@ -10,11 +10,11 @@ export default {
             "@swc/jest",
             {
                 jsc: {
-                    parser: { syntax: "typescript", tsx: true },
+                    parser: {syntax: "typescript", tsx: true},
                     target: "es2022",
-                    transform: { react: { runtime: "automatic" } }
+                    transform: {react: {runtime: "automatic"}}
                 },
-                module: { type: "commonjs" }
+                module: {type: "commonjs"}
             }
         ],
     },
