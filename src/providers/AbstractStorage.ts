@@ -1,6 +1,14 @@
 import {browser, throwRuntimeError} from "@addon-core/browser";
+import LockManager from "../LockManager";
 import MonoStorage from "./MonoStorage";
-import type {StorageProvider, StorageState, StorageWatchOptions} from "../types";
+import type {
+    StorageLocker,
+    StorageLockOptions,
+    StorageProvider,
+    StorageState,
+    StorageUpdater,
+    StorageWatchOptions,
+} from "../types";
 
 const storage = () => browser().storage as typeof chrome.storage;
 
@@ -11,6 +19,7 @@ type onChangedListener = Parameters<typeof chrome.storage.onChanged.addListener>
 
 export interface StorageOptions {
     area?: AreaName;
+    locker?: StorageLocker;
     namespace?: string;
 }
 
@@ -34,10 +43,11 @@ type StaticMake<S extends StorageState, O extends StorageOptions> = <T extends n
 export default abstract class AbstractStorage<T extends StorageState> implements StorageProvider<T> {
     private storage: StorageArea;
     private readonly area: AreaName;
+    protected readonly locker: StorageLocker;
     protected readonly namespace?: string;
     protected separator: string = ":";
 
-    public abstract clear(): Promise<void>;
+    public abstract clear(options?: StorageLockOptions): Promise<void>;
 
     protected abstract getFullKey(key: keyof T): string;
 
@@ -127,38 +137,43 @@ export default abstract class AbstractStorage<T extends StorageState> implements
         } as FactoryOptions<T>);
     }
 
-    protected constructor({area, namespace}: StorageOptions = {}) {
+    protected constructor({area, locker, namespace}: StorageOptions = {}) {
         this.area = area ?? "local";
         this.storage = storage()[this.area];
+        this.locker = locker ?? new LockManager(`storage:${this.area}`);
         this.namespace = namespace?.trim() ? namespace?.trim() : undefined;
     }
 
     public async set<K extends keyof T>(key: K, value: T[K]): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.storage.set({[this.getFullKey(key)]: value}, () => {
-                try {
-                    throwRuntimeError();
-                    resolve();
-                } catch (e) {
-                    reject(e);
+        await this.setUnlocked(key, value);
+    }
+
+    public async update<K extends keyof T>(
+        key: K,
+        updater: StorageUpdater<T[K]>,
+        options?: StorageLockOptions
+    ): Promise<T[K] | undefined> {
+        return await this.locker.request(
+            this.getLockKey(key),
+            async () => {
+                const prev = await this.getUnlocked(key);
+                const next = await updater(prev);
+
+                if (next === undefined) {
+                    await this.removeUnlocked(key);
+                    return undefined;
                 }
-            });
-        });
+
+                await this.setUnlocked(key, next);
+
+                return next;
+            },
+            options
+        );
     }
 
     public async get<K extends keyof T>(key: K): Promise<T[K] | undefined> {
-        const fullKey = this.getFullKey(key);
-
-        return new Promise((resolve, reject) => {
-            this.storage.get(fullKey, result => {
-                try {
-                    throwRuntimeError();
-                    resolve(result[fullKey]);
-                } catch (e) {
-                    reject(e);
-                }
-            });
-        });
+        return await this.getUnlocked(key);
     }
 
     public async getAll(): Promise<Partial<T>> {
@@ -184,7 +199,49 @@ export default abstract class AbstractStorage<T extends StorageState> implements
         });
     }
 
-    public async remove<K extends keyof T>(keys: K | K[]): Promise<void> {
+    public async remove<K extends keyof T>(keys: K | K[], options?: StorageLockOptions): Promise<void> {
+        const list = Array.isArray(keys) ? keys : [keys];
+
+        for (const key of list) {
+            await this.locker.request(
+                this.getLockKey(key),
+                async () => {
+                    await this.removeUnlocked(key);
+                },
+                options
+            );
+        }
+    }
+
+    protected async setUnlocked<K extends keyof T>(key: K, value: T[K]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.storage.set({[this.getFullKey(key)]: value}, () => {
+                try {
+                    throwRuntimeError();
+                    resolve();
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
+    }
+
+    protected async getUnlocked<K extends keyof T>(key: K): Promise<T[K] | undefined> {
+        const fullKey = this.getFullKey(key);
+
+        return new Promise((resolve, reject) => {
+            this.storage.get(fullKey, result => {
+                try {
+                    throwRuntimeError();
+                    resolve(result[fullKey]);
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
+    }
+
+    protected async removeUnlocked<K extends keyof T>(keys: K | K[]): Promise<void> {
         return new Promise((resolve, reject) => {
             const fullKeys = Array.isArray(keys) ? keys.map(key => this.getFullKey(key)) : this.getFullKey(keys);
 
@@ -256,5 +313,9 @@ export default abstract class AbstractStorage<T extends StorageState> implements
         const fullKeyParts = key.split(this.separator);
 
         return fullKeyParts.length > 1 ? fullKeyParts[fullKeyParts.length - 1] : key;
+    }
+
+    protected getLockKey<K extends keyof T>(key: K): string {
+        return this.getFullKey(key);
     }
 }

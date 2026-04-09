@@ -62,6 +62,25 @@ test("set/get basic behavior", async () => {
     expect(raw).toEqual({a: 1, c: "hello"});
 });
 
+test("update serializes concurrent bucket mutations", async () => {
+    const mono = new MonoStorage<BucketState, typeof key>(key, base);
+
+    await mono.set("a", 0);
+
+    await Promise.all([
+        mono.update("a", async prev => {
+            await new Promise(resolve => setTimeout(resolve, 10));
+            return (prev ?? 0) + 1;
+        }),
+        mono.update("a", async prev => {
+            await new Promise(resolve => setTimeout(resolve, 10));
+            return (prev ?? 0) + 1;
+        }),
+    ]);
+
+    expect(await mono.get("a")).toBe(2);
+});
+
 test("getAll returns the whole bucket", async () => {
     const mono = new MonoStorage<BucketState, typeof key>(key, base);
     await mono.set("a", 1);
