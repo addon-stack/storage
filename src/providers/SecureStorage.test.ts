@@ -207,6 +207,32 @@ describe("watch method", () => {
         expect(globalCallback).toHaveBeenCalledWith(80, 50, "volume");
         expect(globalCallback).toHaveBeenCalledWith("dark", "light", "theme");
     });
+
+    test("ignores non-string storage change values without logging watch errors", async () => {
+        const keyCallback = jest.fn();
+        const globalCallback = jest.fn();
+        const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+        try {
+            securedStorage.watch({theme: keyCallback});
+            securedStorage.watch(globalCallback);
+
+            global.simulateStorageChange({
+                storage: securedStorage,
+                key: "theme",
+                oldValue: null,
+                newValue: {theme: "dark"},
+            });
+
+            await new Promise(resolve => setTimeout(resolve));
+
+            expect(keyCallback).toHaveBeenCalledWith(undefined, undefined);
+            expect(globalCallback).toHaveBeenCalledWith(undefined, undefined, "theme");
+            expect(consoleErrorSpy).not.toHaveBeenCalled();
+        } finally {
+            consoleErrorSpy.mockRestore();
+        }
+    });
 });
 
 // Static factory methods tests migrated from AbstractStorage.static.test.ts

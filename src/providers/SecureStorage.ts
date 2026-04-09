@@ -110,8 +110,8 @@ export default class SecureStorage<T extends StorageState> extends AbstractStora
         changes: StorageChange,
         options: StorageWatchOptions<P>
     ): Promise<void> {
-        const newValue = changes.newValue !== undefined ? await this.decrypt(changes.newValue) : undefined;
-        const oldValue = changes.oldValue !== undefined ? await this.decrypt(changes.oldValue) : undefined;
+        const newValue = typeof changes.newValue === "string" ? await this.decrypt(changes.newValue) : undefined;
+        const oldValue = typeof changes.oldValue === "string" ? await this.decrypt(changes.oldValue) : undefined;
 
         await this.triggerChange(key, {newValue, oldValue}, options);
     }

@@ -131,10 +131,12 @@ const createStorageArea = (): chrome.storage.StorageArea => {
     return area;
 };
 
-chrome.storage.local = createStorageArea() as chrome.storage.LocalStorageArea;
-chrome.storage.sync = createStorageArea() as chrome.storage.SyncStorageArea;
-chrome.storage.managed = createStorageArea();
-chrome.storage.session = createStorageArea() as chrome.storage.SessionStorageArea;
+Object.defineProperties(chrome.storage, {
+    local: {value: createStorageArea() as chrome.storage.LocalStorageArea, writable: true, configurable: true},
+    sync: {value: createStorageArea() as chrome.storage.SyncStorageArea, writable: true, configurable: true},
+    managed: {value: createStorageArea(), writable: true, configurable: true},
+    session: {value: createStorageArea() as chrome.storage.SessionStorageArea, writable: true, configurable: true},
+});
 
 chrome.storage.onChanged.addListener = jest.fn(cb => listeners.add(cb));
 chrome.storage.onChanged.removeListener = jest.fn(cb => listeners.delete(cb));

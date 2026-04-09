@@ -221,7 +221,7 @@ export default abstract class AbstractStorage<T extends StorageState> implements
 
         return await callWithPromise<T[K] | undefined>(resolve => {
             this.storage.get(fullKey, result => {
-                resolve(result[fullKey]);
+                resolve(result[fullKey] as T[K] | undefined);
             });
         });
     }
@@ -278,12 +278,14 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     protected async triggerChange<P extends T>(key: string, changes: StorageChange, options: StorageWatchOptions<P>) {
         const {newValue, oldValue} = changes;
 
-        const originalKey = this.getOriginalKey(key);
+        const originalKey = this.getOriginalKey(key) as keyof P;
+        const nextValue = newValue as P[keyof P] | undefined;
+        const prevValue = oldValue as P[keyof P] | undefined;
 
         if (typeof options === "function") {
-            options(newValue, oldValue, originalKey);
+            options(nextValue, prevValue, originalKey);
         } else if (options[originalKey]) {
-            options[originalKey]?.(newValue, oldValue);
+            options[originalKey]?.(nextValue, prevValue);
         }
     }
 
