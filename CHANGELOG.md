@@ -1,5 +1,87 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.5.0 (2026-04-09)
+
+
+### ✨ Features
+
+* add LockManager to serialize concurrent operations ([8b9d49c](https://github.com/addon-stack/storage/commit/8b9d49c9b34b12ec9881ff35cb3150020b399cf9))
+
+  - Introduce `LockManager` for atomic storage updates, leveraging the Web Locks API.
+  - Enhance storage operations with lock options for `update`, `remove`, and `clear`.
+  - Expand test coverage to include concurrency handling and custom locks implementation.
+
+* enhance package metadata and dependencies ([87a6a31](https://github.com/addon-stack/storage/commit/87a6a316ba50ec28ce83f6647d89bf306c9e3f4c))
+
+
+
+
+### 🐛 Bug Fixed
+
+* handle non-string values in SecureStorage changes gracefully ([65f3e9e](https://github.com/addon-stack/storage/commit/65f3e9e8531ca2faa3ac2a9556d9b1a4ebcc8f57))
+
+
+* **release:** specify npm registry in release-it config ([b540405](https://github.com/addon-stack/storage/commit/b54040536c7e13597e708d7dd1c42988d5320a94))
+
+
+
+
+### 📝 Documentation
+
+* add CI badge to README ([79fd044](https://github.com/addon-stack/storage/commit/79fd044801bd5d8c3a55d644ec2fecd1c2e5d6af))
+
+
+* improve and expand documentation for storage features ([bb0af71](https://github.com/addon-stack/storage/commit/bb0af717f596abf41af4d72d896302bc2e26d75f))
+
+  - Provide clearer descriptions of storage APIs, features, and use cases.
+  - Enhance examples for SecureStorage, MonoStorage, atomic updates, and React bindings.
+  - Include notes on Web Locks API reliance, namespaces, and storage areas.
+  - Update examples with modern TypeScript syntax and best practices.
+
+
+
+### 🤖 CI
+
+* **husky:** update pre-commit hook to handle partially staged files ([6c14915](https://github.com/addon-stack/storage/commit/6c14915479614103d9883dc5464e1b51360af50e))
+
+
+* **release:** update release workflow, Node version, and npm config ([f62686e](https://github.com/addon-stack/storage/commit/f62686eb9bb00101a01f2549af4647f92bbb5da5))
+
+
+
+
+### 🧹 Chores
+
+* **deps:** update dependencies and lockfile to latest versions ([82b41d1](https://github.com/addon-stack/storage/commit/82b41d1909e05f42dfb185cf4c2e9d6e4a0de9c3))
+
+
+* update formatting, mailmap, and test label icon ([4ee7b34](https://github.com/addon-stack/storage/commit/4ee7b34e470a92b49f3cd0b01a9bf87e84799adf))
+
+  - Adjusted `.release-it.cjs` to include an icon for the "test" label.
+  - Updated `jest.config.ts` to enforce consistent spacing within objects.
+  - Added `.mailmap` file to consolidate and standardize author email aliases.
+
+
+
+### 🛠️ Refactoring
+
+* **release:** simplify and clean up release-it configuration ([ff864e1](https://github.com/addon-stack/storage/commit/ff864e17c58e456abd9ffb9f82f248847faeac72))
+
+
+* simplify and standardize async storage operations ([ae61d0c](https://github.com/addon-stack/storage/commit/ae61d0cdf2d8966f64100bb1fea7e1ec0f9864f3))
+
+  - Replace custom promises with `callWithPromise` for consistency and readability.
+  - Remove unnecessary `throwRuntimeError` calls and redundant error handling.
+  - Streamline `onChanged` listener management using `handleListener` helper.
+
+
+
+
+### 🙌 Contributors
+
+- [Anjey Tsibylskij](https://github.com/atldays) (@atldays) — commits: 13
+- [Addon Stack](https://github.com/addon-stack) (@addon-stack) — commits: 1
+
 ## 🚀 Release `@addon-core/storage` v0.4.0 (2025-10-07)
 
 
