@@ -1,11 +1,16 @@
 {
   "name": "@addon-core/storage",
   "version": "0.4.0",
+  "description": "Typed storage for browser extensions with atomic updates, namespaces, encryption, and React bindings.",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/addon-stack/storage"
+    "url": "git+https://github.com/addon-stack/storage.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://github.com/addon-stack/storage",
   "bugs": {
@@ -23,10 +28,7 @@
     "safari",
     "react"
   ],
-  "author": "Addon Stack <addonbonedev@gmail.com>",
-  "contributors": [
-    "Anjey Tsibylskij (https://github.com/atldays)"
-  ],
+  "author": "Anjey Tsibylskij (https://github.com/atldays)",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -71,7 +73,8 @@
   },
   "overrides": {
     "glob": "^9.3.5",
-    "source-map": "npm:source-map-js@^1.2.0"
+    "source-map": "npm:source-map-js@^1.2.0",
+    "undici": "6.24.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.3",
@@ -98,7 +101,7 @@
     "typescript": "^5.9.2"
   },
   "dependencies": {
-    "@addon-core/browser": "^0.2.1",
+    "@addon-core/browser": "^0.5.0",
     "dequal": "^2.0.3"
   },
   "peerDependencies": {

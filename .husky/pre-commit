@@ -1,5 +1,10 @@
 #!/usr/bin/env sh
 
-# Husky pre-commit hook: format and run related tests on staged files
+# Husky pre-commit hook: format and run related tests on staged files.
+# We intentionally don't hide partially staged files so formatter changes are
+# added to the same commit instead of being restored as unstaged changes.
 
-npx --no -- lint-staged
+set -eu
+
+npx --no -- lint-staged --no-hide-partially-staged
+git update-index --again

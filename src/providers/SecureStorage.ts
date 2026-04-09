@@ -1,5 +1,5 @@
 import AbstractStorage, {type StorageOptions} from "./AbstractStorage";
-import type {StorageState, StorageWatchOptions} from "../types";
+import type {StorageLockOptions, StorageState, StorageWatchOptions} from "../types";
 
 type StorageChange = chrome.storage.StorageChange;
 
@@ -65,18 +65,18 @@ export default class SecureStorage<T extends StorageState> extends AbstractStora
         return JSON.parse(new TextDecoder().decode(decrypted));
     }
 
-    public async set<K extends keyof T>(key: K, value: T[K]): Promise<void> {
+    protected async setUnlocked<K extends keyof T>(key: K, value: T[K]): Promise<void> {
         if (value === undefined) {
             return;
         }
 
         const encryptedValue = await this.encrypt(value);
 
-        return super.set(key, encryptedValue as T[K]);
+        await super.setUnlocked(key, encryptedValue as T[K]);
     }
 
-    public async get<K extends keyof T>(key: K): Promise<T[K] | undefined> {
-        const encryptedValue = (await super.get(key)) as string;
+    protected async getUnlocked<K extends keyof T>(key: K): Promise<T[K] | undefined> {
+        const encryptedValue = (await super.getUnlocked(key)) as string;
 
         return encryptedValue ? this.decrypt(encryptedValue) : undefined;
     }
@@ -93,10 +93,10 @@ export default class SecureStorage<T extends StorageState> extends AbstractStora
         return decryptedValues as Partial<T>;
     }
 
-    public async clear(): Promise<void> {
+    public async clear(options?: StorageLockOptions): Promise<void> {
         const allValues = await super.getAll();
 
-        await this.remove(Object.keys(allValues));
+        await this.remove(Object.keys(allValues), options);
     }
 
     protected isKeyValid(key: string): boolean {
@@ -110,8 +110,8 @@ export default class SecureStorage<T extends StorageState> extends AbstractStora
         changes: StorageChange,
         options: StorageWatchOptions<P>
     ): Promise<void> {
-        const newValue = changes.newValue !== undefined ? await this.decrypt(changes.newValue) : undefined;
-        const oldValue = changes.oldValue !== undefined ? await this.decrypt(changes.oldValue) : undefined;
+        const newValue = typeof changes.newValue === "string" ? await this.decrypt(changes.newValue) : undefined;
+        const oldValue = typeof changes.oldValue === "string" ? await this.decrypt(changes.oldValue) : undefined;
 
         await this.triggerChange(key, {newValue, oldValue}, options);
     }

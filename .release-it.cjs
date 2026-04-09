@@ -97,7 +97,7 @@ const types = new Map([
     ["perf", "⚡️ Performance Improvements"],
     ["refactor", "🛠️ Refactoring"],
     ["docs", "📝 Documentation"],
-    ["test", "Tests"],
+    ["test", "🧪 Tests"],
     ["build", "🏗️ Build System"],
     ["ci", "🤖 CI"],
     ["chore", "🧹 Chores"],
@@ -139,8 +139,11 @@ module.exports = () => {
 
         npm: {
             publish: true,
+            skipChecks: true,
+            provenance: true,
+            access: "public",
+            registry: "https://registry.npmjs.org/",
             versionArgs: ["--no-git-tag-version"],
-            publishArgs: ["--provenance", "--access", "public"],
         },
 
         plugins: {

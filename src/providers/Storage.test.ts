@@ -1,5 +1,6 @@
 import MonoStorage from "./MonoStorage";
 import Storage from "./Storage";
+import type {StorageLocker} from "../types";
 
 const hasArea = (name: keyof typeof chrome.storage) => {
     const area = (chrome.storage as any)[name];
@@ -22,9 +23,19 @@ const getAllFromArea = async (name: keyof typeof chrome.storage) => {
 const namespace = "user";
 const storage = new Storage();
 const storageWithNamespace = new Storage({namespace});
+const originalLocks = globalThis.navigator.locks;
 
 beforeEach(async () => {
     await clearAllAreas();
+});
+
+afterEach(() => {
+    Object.defineProperty(globalThis.navigator, "locks", {
+        value: originalLocks,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+    });
 });
 
 test("set method - saves data with namespace", async () => {
@@ -34,6 +45,113 @@ test("set method - saves data with namespace", async () => {
 
     expect(result).toEqual("dark");
     expect(secondResult).toEqual("dark");
+});
+
+test("update method - serializes concurrent writes for the same key", async () => {
+    await storage.set("count", 0);
+
+    await Promise.all([
+        storage.update("count", async prev => {
+            await new Promise(resolve => setTimeout(resolve, 10));
+            return (prev ?? 0) + 1;
+        }),
+        storage.update("count", async prev => {
+            await new Promise(resolve => setTimeout(resolve, 10));
+            return (prev ?? 0) + 1;
+        }),
+    ]);
+
+    expect(await storage.get("count")).toBe(2);
+});
+
+test("update method - fails when Web Locks API is unavailable", async () => {
+    Object.defineProperty(globalThis.navigator, "locks", {
+        value: undefined,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+    });
+
+    const isolatedStorage = new Storage();
+
+    await expect(isolatedStorage.update("counter", prev => (prev ?? 0) + 1)).rejects.toThrow(
+        "Atomic storage update is unavailable: Web Locks API is not supported in this context."
+    );
+});
+
+test("set method - works without Web Locks API", async () => {
+    Object.defineProperty(globalThis.navigator, "locks", {
+        value: undefined,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+    });
+
+    const isolatedStorage = new Storage();
+
+    await isolatedStorage.set("displayName", "Ada Lovelace");
+
+    expect(await global.storageLocalGet("displayName", isolatedStorage)).toBe("Ada Lovelace");
+});
+
+test("remove method - waits for pending update on the same key", async () => {
+    await storage.set("theme", "light");
+
+    const updatePromise = storage.update("theme", async () => {
+        await new Promise(resolve => setTimeout(resolve, 20));
+        return "dark";
+    });
+
+    const removePromise = storage.remove("theme");
+
+    await Promise.all([updatePromise, removePromise]);
+
+    expect(await storage.get("theme")).toBeUndefined();
+});
+
+test("remove method - preserves stored value when waiting for the lock is aborted", async () => {
+    await storage.set("profileState", "active");
+
+    const locker: StorageLocker = {
+        async request() {
+            const error = new Error("The lock request was aborted.");
+            error.name = "AbortError";
+            throw error;
+        },
+    };
+
+    const isolatedStorage = new Storage({locker});
+
+    await isolatedStorage.set("profileState", "active");
+
+    await expect(isolatedStorage.remove("profileState")).rejects.toMatchObject({name: "AbortError"});
+
+    expect(await isolatedStorage.get("profileState")).toBe("active");
+});
+
+test("update method - forwards lock options to custom storage locker", async () => {
+    const requests: Array<{name: string; options: any}> = [];
+
+    const locker: StorageLocker = {
+        async request(name, task, options) {
+            requests.push({name, options});
+            return await task();
+        },
+    };
+
+    const isolatedStorage = new Storage({locker});
+    const controller = new AbortController();
+
+    await isolatedStorage.update("counter", prev => (prev ?? 0) + 1, {signal: controller.signal, timeout: 25});
+
+    expect(requests).toEqual([
+        {
+            name: "counter",
+            options: {signal: controller.signal, timeout: 25},
+        },
+    ]);
+
+    expect(await isolatedStorage.get("counter")).toBe(1);
 });
 
 test("getAll method - returns all values from current namespace", async () => {

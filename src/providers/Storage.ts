@@ -1,5 +1,5 @@
 import AbstractStorage, {type StorageOptions} from "./AbstractStorage";
-import type {StorageState, StorageWatchOptions} from "../types";
+import type {StorageLockOptions, StorageState, StorageWatchOptions} from "../types";
 
 type StorageChange = chrome.storage.StorageChange;
 
@@ -8,10 +8,10 @@ export default class Storage<T extends StorageState> extends AbstractStorage<T> 
         super(options);
     }
 
-    public async clear(): Promise<void> {
+    public async clear(options?: StorageLockOptions): Promise<void> {
         const allValues = await this.getAll();
 
-        await this.remove(Object.keys(allValues));
+        await this.remove(Object.keys(allValues), options);
     }
 
     protected isKeyValid(key: string): boolean {

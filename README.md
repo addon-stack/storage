@@ -1,244 +1,317 @@
 # @addon-core/storage
 
-Type-safe, ergonomic wrapper around chrome.storage for browser extensions (WebExtensions) with namespaces, multiple
-storage areas, encryption (AES‑GCM), bucket-style storage (MonoStorage), and a React adapter.
+Typed storage for browser extensions with namespaces, atomic updates, encrypted values, bucket-style storage, and React bindings.
 
-[![npm version](https://img.shields.io/npm/v/%40addon-core%2Fstorage.svg?logo=npm)](https://www.npmjs.com/package/@addon-core/storage)
-[![npm downloads](https://img.shields.io/npm/dm/%40addon-core%2Fstorage.svg)](https://www.npmjs.com/package/@addon-core/storage)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
+[![npm version](https://img.shields.io/npm/v/%40addon-core%2Fstorage.svg?logo=npm&style=for-the-badge)](https://www.npmjs.com/package/@addon-core/storage)
+[![npm downloads](https://img.shields.io/npm/dm/%40addon-core%2Fstorage.svg?style=for-the-badge&color=blue)](https://www.npmjs.com/package/@addon-core/storage)
+[![CI](https://img.shields.io/github/actions/workflow/status/addon-stack/storage/ci.yml?style=for-the-badge)](https://github.com/addon-stack/storage/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE.md)
 
-- Simple API: set, get, getAll, remove, clear, watch
-- Storage areas: local, session, sync, managed
-- Namespaces to logically separate keys
-- Secure storage: SecureStorage (AES‑GCM, app key)
-- MonoStorage — store multiple values under a single top-level key
-- React hook useStorage for two-way binding between state and storage
-- First-class TypeScript support (strict typing for keys and values)
+## Why this package
+
+`chrome.storage` is flexible, but it gets noisy quickly:
+
+- storage keys are untyped and easy to mistype;
+- namespaces need manual handling;
+- read-modify-write flows are easy to break;
+- encrypted values require extra boilerplate;
+- feature state often ends up scattered across unrelated keys.
+
+`@addon-core/storage` adds a small typed layer on top of `chrome.storage` so storage code stays predictable and easy to read.
+
+## Features
+
+- Simple API: `set`, `get`, `update`, `getAll`, `remove`, `clear`, `watch`
+- Atomic `update()` for race-safe writes
+- `local`, `session`, `sync`, and `managed` storage areas
+- Namespaces for isolating module data
+- `SecureStorage` with AES-GCM encryption
+- `MonoStorage` for grouping related values under one top-level key
+- React hook via `@addon-core/storage/react`
 
 ## Installation
 
+### npm
+
 ```bash
-# with your preferred package manager
 npm i @addon-core/storage
-# or
-yarn add @addon-core/storage
-# or
+```
+
+### pnpm
+
+```bash
 pnpm add @addon-core/storage
 ```
 
-Requirements and environment:
+### yarn
 
-- The library targets browser extension environments where chrome.storage is available.
-- For the React adapter, peer dependencies react and react-dom are required (optionally @types/react and @types/react-dom for TypeScript).
-- SecureStorage relies on the Web Crypto API (crypto.subtle, AES‑GCM), available in modern browsers.
+```bash
+yarn add @addon-core/storage
+```
 
 ## Quick start
 
 ```ts
 import {Storage} from "@addon-core/storage";
 
-// Optionally set a namespace to isolate module keys
-const storage = Storage.Local<{ token?: string; theme?: "light" | "dark" }>({namespace: "app"});
+interface SessionState {
+    token?: string;
+    theme?: "light" | "dark";
+}
 
+const storage = Storage.Local<SessionState>();
 await storage.set("token", "abc123");
-const token = await storage.get("token"); // "abc123"
+await storage.set("theme", "dark");
 
-await storage.remove("token");
-await storage.clear(); // clears only keys from the current namespace (if set)
+const token = await storage.get("token");
+const all = await storage.getAll();
 ```
 
-## API overview
+## Typed storage without boilerplate
 
-The package exports:
-
-- Provider classes: `Storage`, `SecureStorage`, `MonoStorage`
-- Types: `StorageProvider`, `StorageState`, `StorageWatchOptions`, `StorageWatchCallback`, `StorageWatchKeyCallback`
-- React adapter: `useStorage` from the submodule `@addon-core/storage/react`
-
-### Creating a provider
-
-There are two ways to create a provider instance.
-
-1) Via constructor with options:
+Define your storage shape once:
 
 ```ts
-import {Storage} from "@addon-core/storage";
-
-const s1 = new Storage<{ count?: number }>({area: "local", namespace: "counter"});
-```
-
-2) Via convenient static factories:
-
-```ts
-import {Storage, SecureStorage} from "@addon-core/storage";
-
-const sLocal = Storage.Local<{ user?: string }>({namespace: "app"});
-const sSession = Storage.Session<{ tmp?: string }>();
-const sSync = Storage.Sync<{ settings?: any }>({namespace: "global"});
-const sManaged = Storage.Managed<{ policy?: any }>(); // for policy-managed storage
-
-// SecureStorage — values are encrypted (AES‑GCM) under the reserved prefix "secure:"
-const secure = SecureStorage.Local<{ token?: string }>({secureKey: "MyStrongKey", namespace: "auth"});
-```
-
-Provider options:
-
-- `area?: "local" | "session" | "sync" | "managed"` — storage area (defaults to `local`)
-- `namespace?: string` — optional namespace; keys become `namespace:key` (for `SecureStorage`: `secure:namespace:key`)
-- For `SecureStorage`: additionally `secureKey?: string` — a string used to derive the encryption key.
-
-### Provider methods
-
-All providers (`Storage`, `SecureStorage`, `MonoStorage`) share the `StorageProvider<T>` interface:
-
-```ts
-interface StorageProvider<T> {
-    set<K extends keyof T>(key: K, value: T[K]): Promise<void>;
-
-    get<K extends keyof T>(key: K): Promise<T[K] | undefined>;
-
-    getAll(): Promise<Partial<T>>;
-
-    remove<K extends keyof T>(keys: K | K[]): Promise<void>;
-
-    clear(): Promise<void>;
-
-    watch(options: StorageWatchOptions<T>): () => void; // returns an unsubscribe function
+interface UserSettings {
+    theme?: "light" | "dark";
+    language?: "en" | "uk";
+    shortcutsEnabled?: boolean;
 }
 ```
 
-Where `StorageWatchOptions<T>` is either a map of per-key callbacks or a single callback:
-
-```ts
-// Option 1: a single handler for all changes
-const unsubscribe = storage.watch((next, prev, key) => {
-    console.log("changed", {key, next, prev});
-});
-
-// Option 2: specific handlers per key
-const un = storage.watch({
-    token(newVal, oldVal) {
-        console.log("token changed", newVal, oldVal);
-    },
-    theme(newVal, oldVal) {
-        console.log("theme changed", newVal, oldVal);
-    },
-});
-
-// Later
-un(); // unsubscribe
-```
-
-Notes:
-
-- `getAll()` returns entries (key–value pairs) scoped to the current provider (area, namespace, provider kind) and resolves to `Partial<T>`.
-- In the single-callback form of `watch()`, the third argument is the `key` that changed.
-- `SecureStorage` transparently encrypts/decrypts values. They are stored as strings, while you work with original types
-  externally.
-
-### MonoStorage — a “bucket” under one key
-
-`MonoStorage` lets you keep several values under a single top-level key (a bucket). Handy when you need to atomically
-store and update a set of related values.
-
-You can create it in two ways:
-
-1) Explicitly:
-
-```ts
-import {MonoStorage, Storage} from "@addon-core/storage";
-
-type Bucket = { a?: number; b?: string };
-const base = Storage.Local<Record<"bucket", Partial<Bucket>>>();
-const mono = new MonoStorage<Bucket, "bucket">("bucket", base);
-
-await mono.set("a", 1);
-await mono.set("b", "x");
-console.log(await mono.getAll()); // { a: 1, b: "x" }
-```
-
-2) Via the factory with the `key` parameter — you’ll get MonoStorage right away:
+Create a typed storage instance for the `sync` area:
 
 ```ts
 import {Storage} from "@addon-core/storage";
 
-const mono = Storage.Local<{ a?: number; b?: string }>({key: "bucket"});
-await mono.set("a", 1);
+const settings = Storage.Sync<UserSettings>({namespace: "settings"});
 ```
 
-Highlights:
+Now all operations are typed:
 
-- When the last value in the “bucket” is removed, the top-level key is cleared entirely.
-- `watch()` in MonoStorage invokes callbacks only on actual value changes (deep/structural comparison).
+```ts
+await settings.set("theme", "dark");
+const theme = await settings.get("theme");
+await settings.remove("language");
+```
 
-### SecureStorage — value encryption
+## Atomic updates
+
+If the next value depends on the previous one, use `update()` instead of `get()` + `set()`.
+
+```ts
+interface CounterState {
+    installCount?: number;
+}
+
+const storage = Storage.Local<CounterState>();
+
+await storage.update("installCount", prev => (prev ?? 0) + 1);
+```
+
+This is useful for:
+
+- counters;
+- retry state;
+- toggles;
+- queue metadata;
+- any concurrent read-modify-write flow.
+
+### With timeout or abort signal
+
+```ts
+const controller = new AbortController();
+
+await storage.update(
+    "installCount",
+    prev => (prev ?? 0) + 1,
+    {
+        signal: controller.signal,
+        timeout: 500,
+    }
+);
+```
+
+### Important note
+
+Atomic operations rely on the Web Locks API.
+
+- `update()` uses locking for safe writes;
+- `remove()` and `clear()` are lock-aware too;
+- `set()` and `get()` still work without Web Locks;
+- if Web Locks are unavailable, atomic operations will throw.
+
+## Storage areas
+
+```ts
+import {Storage} from "@addon-core/storage";
+
+const local = Storage.Local<{draft?: string}>();
+const session = Storage.Session<{popupOpen?: boolean}>();
+const sync = Storage.Sync<{theme?: string}>();
+const managed = Storage.Managed<{policyEnabled?: boolean}>();
+```
+
+## Namespaces
+
+Use namespaces when different modules may use the same key names.
+
+```ts
+const auth = Storage.Local<{token?: string}>({namespace: "auth"});
+const ui = Storage.Local<{token?: string}>({namespace: "ui"});
+```
+
+These storage instances stay isolated even if the key name is the same.
+
+## Secure storage
+
+`SecureStorage` encrypts values before writing them to `chrome.storage`.
 
 ```ts
 import {SecureStorage} from "@addon-core/storage";
 
-type Auth = { token?: string; profile?: { id: string } };
-const secure = SecureStorage.Local<Auth>({secureKey: "AppSecret", namespace: "auth"});
+interface AuthState {
+    accessToken?: string;
+    refreshToken?: string;
+}
 
-await secure.set("token", "jwt.token.value");
-const token = await secure.get("token"); // decrypted
+const authStorage = SecureStorage.Local<AuthState>({
+    namespace: "auth",
+    secureKey: "AppSecret",
+});
+
+await authStorage.set("accessToken", "jwt-token");
+const token = await authStorage.get("accessToken");
 ```
 
-Under the hood AES‑GCM (Web Crypto API) is used. Don’t keep `secureKey` in public code — obtain it from protected
-sources (e.g., native settings, enterprise policy, remote configuration, etc.).
+Use it for tokens, sensitive flags, or other small private values.
 
-## React adapter
+## MonoStorage
 
-The submodule `@addon-core/storage/react` provides the `useStorage` hook to synchronize component state with
-chrome.storage.
+`MonoStorage` is useful when one feature should live under a single top-level storage key.
 
-Signatures (simplified):
+For example, keeping popup state together:
 
 ```ts
-// useStorage<T>(options: { key: string; storage?: StorageProvider<Record<string, any>>; defaultValue?: T }):
-//   readonly [T | undefined, (v: T) => void, () => void]
-// useStorage<T>(key: string, defaultValue?: T):
-//   readonly [T | undefined, (v: T) => void, () => void]
+import {Storage} from "@addon-core/storage";
+
+interface PopupState {
+    search?: string;
+    selectedTab?: "overview" | "history";
+    filters?: string[];
+}
+
+const popup = Storage.Local<PopupState>({key: "popup"});
 ```
 
-Basic example:
+Then use it like a regular storage instance:
+
+```ts
+await popup.set("search", "open tabs");
+await popup.update("filters", prev => [...(prev ?? []), "pinned"]);
+
+const state = await popup.getAll();
+```
+
+This keeps related values grouped and easier to manage.
+
+## Watching changes
+
+Listen to all keys:
+
+```ts
+const unsubscribe = settings.watch((next, prev, key) => {
+    console.log("changed", key, {prev, next});
+});
+```
+
+Or subscribe only to specific keys:
+
+```ts
+const unsubscribe = settings.watch({
+    theme(next, prev) {
+        console.log("theme changed", prev, "->", next);
+    },
+    language(next, prev) {
+        console.log("language changed", prev, "->", next);
+    },
+});
+```
+
+## React
+
+The React adapter is available via `@addon-core/storage/react`.
 
 ```tsx
-import React from "react";
 import {useStorage} from "@addon-core/storage/react";
 
-export function ThemeSwitch() {
+export function ThemeToggle() {
     const [theme, setTheme] = useStorage<"light" | "dark">("theme", "light");
 
     return (
-        <button onClick={() => setTheme(theme === "light" ? "dark" : "light")}>Theme: {theme}</button>
+        <button onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
+            Theme: {theme}
+        </button>
     );
 }
 ```
 
-Using a custom provider and default value:
+You can also pass a custom storage instance:
 
 ```tsx
-import React from "react";
 import {Storage} from "@addon-core/storage";
 import {useStorage} from "@addon-core/storage/react";
 
-const storage = Storage.Sync<Record<string, any>>({namespace: "app"});
+const settings = Storage.Sync<{theme?: "light" | "dark"}>({namespace: "settings"});
 
-export function Profile() {
-    const [name, setName, removeName] = useStorage<string>({key: "name", storage, defaultValue: "Anonymous"});
+export function ThemeToggle() {
+    const [theme, setTheme] = useStorage({
+        key: "theme",
+        storage: settings,
+        defaultValue: "light",
+    });
 
     return (
-        <div>
-            <input value={name ?? ""} onChange={e => setName(e.target.value)}/>
-            <button onClick={removeName}>Reset</button>
-        </div>
+        <button onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
+            Theme: {theme}
+        </button>
     );
 }
 ```
 
-## Practical tips
+## Core methods
 
-- Don’t mix data from different modules — use `namespace`.
-- To sync settings across devices, use the `sync` area.
-- In test environments, use WebExtensions mocks (e.g., `jest-webextension-mock`).
-- Don’t store large amounts of data — `chrome.storage` has quotas. Store settings and lightweight data only.
+Every storage instance exposes the same small API:
+
+- `get(key)`
+- `set(key, value)`
+- `update(key, updater, options?)`
+- `getAll()`
+- `remove(key | keys, options?)`
+- `clear(options?)`
+- `watch(callback | handlers)`
+
+## Custom locking
+
+If you need custom lock behavior, pass your own `locker`:
+
+```ts
+import {Storage, type StorageLocker} from "@addon-core/storage";
+
+const locker: StorageLocker = {
+    async request(name, task) {
+        return await task();
+    },
+};
+
+const storage = new Storage<{count?: number}>({
+    area: "local",
+    locker,
+});
+```
+
+## Notes
+
+- Built for browser extensions where `chrome.storage` is available
+- `SecureStorage` requires Web Crypto API support
+- `chrome.storage` quotas still apply, especially for `sync`

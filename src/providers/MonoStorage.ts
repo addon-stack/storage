@@ -1,5 +1,5 @@
 import {dequal as isEqual} from "dequal/lite";
-import type {StorageProvider, StorageState, StorageWatchOptions} from "../types";
+import type {StorageLockOptions, StorageProvider, StorageState, StorageUpdater, StorageWatchOptions} from "../types";
 
 export default class MonoStorage<T extends StorageState, K extends string> implements StorageProvider<T> {
     constructor(
@@ -17,30 +17,8 @@ export default class MonoStorage<T extends StorageState, K extends string> imple
         return obj && typeof obj === "object" ? obj : {};
     }
 
-    private async write(obj: Partial<T>): Promise<void> {
-        await this.storage.set(this.key, obj);
-    }
-
     public async set<KP extends keyof T>(key: KP, value: T[KP]): Promise<void> {
-        const bucket = await this.read();
-
-        if (value === undefined) {
-            if (key in bucket) {
-                const next = {...bucket};
-
-                delete next[key];
-
-                if (Object.keys(next).length === 0) {
-                    await this.storage.remove(this.key);
-                } else {
-                    await this.write(next);
-                }
-            }
-
-            return;
-        }
-
-        await this.write({...bucket, [key]: value});
+        await this.update(key, () => value);
     }
 
     public async get<KP extends keyof T>(key: KP): Promise<T[KP] | undefined> {
@@ -49,44 +27,75 @@ export default class MonoStorage<T extends StorageState, K extends string> imple
         return bucket[key] as T[KP] | undefined;
     }
 
+    public async update<KP extends keyof T>(
+        key: KP,
+        updater: StorageUpdater<T[KP]>,
+        options?: StorageLockOptions
+    ): Promise<T[KP] | undefined> {
+        const nextBucket = await this.storage.update(
+            this.key,
+            async bucketValue => {
+                const bucket: Partial<T> = bucketValue && typeof bucketValue === "object" ? bucketValue : {};
+                const prevValue = bucket[key] as T[KP] | undefined;
+                const nextValue = await updater(prevValue);
+
+                if (nextValue === undefined) {
+                    if (!(key in bucket)) {
+                        return bucket;
+                    }
+
+                    const next = {...bucket};
+                    delete next[key];
+
+                    return Object.keys(next).length === 0 ? undefined : next;
+                }
+
+                return {...bucket, [key]: nextValue};
+            },
+            options
+        );
+
+        return nextBucket?.[key] as T[KP] | undefined;
+    }
+
     public async getAll(): Promise<Partial<T>> {
         return await this.read();
     }
 
-    public async remove<KP extends keyof T>(keys: KP | KP[]): Promise<void> {
-        const bucket = await this.read();
-
+    public async remove<KP extends keyof T>(keys: KP | KP[], options?: StorageLockOptions): Promise<void> {
         const list = Array.isArray(keys) ? keys : [keys];
 
-        if (Object.keys(bucket).length === 0) {
-            return;
-        }
+        await this.storage.update(
+            this.key,
+            bucketValue => {
+                const bucket: Partial<T> = bucketValue && typeof bucketValue === "object" ? bucketValue : {};
 
-        const next = {...bucket};
+                if (Object.keys(bucket).length === 0) {
+                    return bucket;
+                }
 
-        let changed = false;
+                const next = {...bucket};
+                let changed = false;
 
-        for (const k of list) {
-            if (k in next) {
-                delete next[k];
+                for (const currentKey of list) {
+                    if (currentKey in next) {
+                        delete next[currentKey];
+                        changed = true;
+                    }
+                }
 
-                changed = true;
-            }
-        }
+                if (!changed) {
+                    return bucket;
+                }
 
-        if (!changed) {
-            return;
-        }
-
-        if (Object.keys(next).length === 0) {
-            await this.storage.remove(this.key);
-        } else {
-            await this.write(next);
-        }
+                return Object.keys(next).length === 0 ? undefined : next;
+            },
+            options
+        );
     }
 
-    public async clear(): Promise<void> {
-        await this.storage.remove(this.key);
+    public async clear(options?: StorageLockOptions): Promise<void> {
+        await this.storage.remove(this.key, options);
     }
 
     public watch(options: StorageWatchOptions<T>): () => void {
