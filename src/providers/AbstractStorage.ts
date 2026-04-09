@@ -1,4 +1,5 @@
-import {browser, throwRuntimeError} from "@addon-core/browser";
+import {browser} from "@addon-core/browser";
+import {callWithPromise, handleListener} from "@addon-core/browser/utils";
 import LockManager from "../LockManager";
 import MonoStorage from "./MonoStorage";
 import type {
@@ -177,24 +178,18 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     }
 
     public async getAll(): Promise<Partial<T>> {
-        return new Promise((resolve, reject) => {
+        return await callWithPromise(resolve => {
             this.storage.get(null, result => {
-                try {
-                    throwRuntimeError();
+                const formattedResult: Partial<Record<keyof T, T[keyof T]>> = {};
 
-                    const formattedResult: Partial<Record<keyof T, T[keyof T]>> = {};
-
-                    for (const [key, value] of Object.entries(result)) {
-                        if (this.isKeyValid(key)) {
-                            const original = this.getOriginalKey(key) as keyof T;
-                            formattedResult[original] = value as T[keyof T];
-                        }
+                for (const [key, value] of Object.entries(result)) {
+                    if (this.isKeyValid(key)) {
+                        const original = this.getOriginalKey(key) as keyof T;
+                        formattedResult[original] = value as T[keyof T];
                     }
-
-                    resolve(formattedResult as Partial<T>);
-                } catch (e) {
-                    reject(e);
                 }
+
+                resolve(formattedResult as Partial<T>);
             });
         });
     }
@@ -214,14 +209,9 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     }
 
     protected async setUnlocked<K extends keyof T>(key: K, value: T[K]): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return await callWithPromise<void>(resolve => {
             this.storage.set({[this.getFullKey(key)]: value}, () => {
-                try {
-                    throwRuntimeError();
-                    resolve();
-                } catch (e) {
-                    reject(e);
-                }
+                resolve();
             });
         });
     }
@@ -229,29 +219,19 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     protected async getUnlocked<K extends keyof T>(key: K): Promise<T[K] | undefined> {
         const fullKey = this.getFullKey(key);
 
-        return new Promise((resolve, reject) => {
+        return await callWithPromise<T[K] | undefined>(resolve => {
             this.storage.get(fullKey, result => {
-                try {
-                    throwRuntimeError();
-                    resolve(result[fullKey]);
-                } catch (e) {
-                    reject(e);
-                }
+                resolve(result[fullKey]);
             });
         });
     }
 
     protected async removeUnlocked<K extends keyof T>(keys: K | K[]): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return await callWithPromise<void>(resolve => {
             const fullKeys = Array.isArray(keys) ? keys.map(key => this.getFullKey(key)) : this.getFullKey(keys);
 
             this.storage.remove(fullKeys, () => {
-                try {
-                    throwRuntimeError();
-                    resolve();
-                } catch (e) {
-                    reject(e);
-                }
+                resolve();
             });
         });
     }
@@ -288,9 +268,7 @@ export default abstract class AbstractStorage<T extends StorageState> implements
             });
         };
 
-        storage().onChanged.addListener(listener);
-
-        return () => storage().onChanged.removeListener(listener);
+        return handleListener(storage().onChanged, listener);
     }
 
     protected isKeyValid(key: string): boolean {
