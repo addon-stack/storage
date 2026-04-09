@@ -142,7 +142,6 @@ module.exports = () => {
             skipChecks: true,
             provenance: true,
             access: "public",
-            registry: "https://registry.npmjs.org/",
             versionArgs: ["--no-git-tag-version"],
         },
 
@@ -168,41 +167,38 @@ module.exports = () => {
                     contributors,
                 },
 
-                recommendedBumpOpts: {
-                    preset: "conventionalcommits",
-                    whatBump: commits => {
-                        let isMajor = false;
-                        let isMinor = false;
-                        let isPatch = false;
+                whatBump: commits => {
+                    let isMajor = false;
+                    let isMinor = false;
+                    let isPatch = false;
 
-                        for (const commit of commits) {
-                            if (commit.notes?.some(n => /BREAKING CHANGE/i.test(n.title || n.text || ""))) {
-                                isMajor = true;
-                                break;
-                            }
-
-                            const type = (commit.type || "").toLowerCase();
-
-                            if (type === "feat") {
-                                isMinor = true;
-                            }
-
-                            if (["fix", "perf", "refactor", "ci"].includes(type)) {
-                                isPatch = true;
-                            }
+                    for (const commit of commits) {
+                        if (commit.notes?.some(n => /BREAKING CHANGE/i.test(n.title || n.text || ""))) {
+                            isMajor = true;
+                            break;
                         }
 
-                        if (isMajor) return {level: 0};
-                        if (isMinor) return {level: 1};
-                        if (isPatch) return {level: 2};
+                        const type = (commit.type || "").toLowerCase();
 
-                        return null;
-                    },
+                        if (type === "feat") {
+                            isMinor = true;
+                        }
+
+                        if (["fix", "perf", "refactor", "ci"].includes(type)) {
+                            isPatch = true;
+                        }
+                    }
+
+                    if (isMajor) return {level: 0};
+                    if (isMinor) return {level: 1};
+                    if (isPatch) return {level: 2};
+
+                    return null;
                 },
                 writerOpts: {
                     headerPartial:
                         "## 🚀 Release {{#if name}}`{{name}}` {{else}}{{#if @root.pkg}}`{{@root.pkg.name}}` {{/if}}{{/if}}v{{version}} ({{date}})\n\n",
-                    footerPartial: `{{#if @root.contributors.length}}\n### 🙌 Contributors\n\n{{#each @root.contributors}}- {{#if url}}{{#if name}}[{{name}}]({{url}}){{#if login}} (@{{login}}){{/if}}{{else}}[@{{login}}]({{url}}){{/if}}{{else}}{{#if email}}{{#if name}}[{{name}}]({{email}}){{else}}{{email}}{{/if}}{{else}}{{name}}{{/if}}{{/if}} — {{count}} commits\n{{/each}}{{/if}}`,
+                    footerPartial: `{{#if @root.contributors.length}}\n### 🙌 Contributors\n\n{{#each @root.contributors}}- {{#if url}}{{#if name}}[{{name}}]({{url}}){{#if login}} (@{{login}}){{/if}}{{else}}[@{{login}}]({{url}}){{/if}}{{else}}{{#if email}}{{#if name}}[{{name}}](mailto:{{email}}){{else}}{{email}}{{/if}}{{else}}{{name}}{{/if}}{{/if}} — commits: {{count}}\n{{/each}}{{/if}}`,
                     mainTemplate:
                         "{{> header}}\n" +
                         "{{#if noteGroups}}\n### 💥 Breaking Changes\n\n{{#each noteGroups}}{{#each notes}}* {{{text}}}\n\n{{/each}}{{/each}}{{/if}}" +
