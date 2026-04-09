@@ -2,16 +2,16 @@
 
 Typed storage for browser extensions with namespaces, atomic updates, encrypted values, bucket-style storage, and React bindings.
 
-[![npm version](https://img.shields.io/npm/v/%40addon-core%2Fstorage.svg?logo=npm)](https://www.npmjs.com/package/@addon-core/storage)
-[![npm downloads](https://img.shields.io/npm/dm/%40addon-core%2Fstorage.svg)](https://www.npmjs.com/package/@addon-core/storage)
-[![CI](https://github.com/addon-stack/storage/actions/workflows/ci.yml/badge.svg)](https://github.com/addon-stack/storage/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
+[![npm version](https://img.shields.io/npm/v/%40addon-core%2Fstorage.svg?logo=npm&style=for-the-badge)](https://www.npmjs.com/package/@addon-core/storage)
+[![npm downloads](https://img.shields.io/npm/dm/%40addon-core%2Fstorage.svg?style=for-the-badge&color=blue)](https://www.npmjs.com/package/@addon-core/storage)
+[![CI](https://img.shields.io/github/actions/workflow/status/addon-stack/storage/ci.yml?style=for-the-badge)](https://github.com/addon-stack/storage/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE.md)
 
 ## Why this package
 
 `chrome.storage` is flexible, but it gets noisy quickly:
 
-- keys are just strings;
+- storage keys are untyped and easy to mistype;
 - namespaces need manual handling;
 - read-modify-write flows are easy to break;
 - encrypted values require extra boilerplate;
@@ -31,8 +31,22 @@ Typed storage for browser extensions with namespaces, atomic updates, encrypted 
 
 ## Installation
 
+### npm
+
 ```bash
 npm i @addon-core/storage
+```
+
+### pnpm
+
+```bash
+pnpm add @addon-core/storage
+```
+
+### yarn
+
+```bash
+yarn add @addon-core/storage
 ```
 
 ## Quick start
