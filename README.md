@@ -4,6 +4,7 @@ Typed storage for browser extensions with namespaces, atomic updates, encrypted 
 
 [![npm version](https://img.shields.io/npm/v/%40addon-core%2Fstorage.svg?logo=npm)](https://www.npmjs.com/package/@addon-core/storage)
 [![npm downloads](https://img.shields.io/npm/dm/%40addon-core%2Fstorage.svg)](https://www.npmjs.com/package/@addon-core/storage)
+[![CI](https://github.com/addon-stack/storage/actions/workflows/ci.yml/badge.svg)](https://github.com/addon-stack/storage/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 
 ## Why this package
