@@ -27,7 +27,8 @@
       "!src/**/*.test.{ts,tsx,js,jsx}",
       "**/*.{json,jsonc,md,mdx,cjs,mjs}",
       "!coverage/**",
-      "!dist/**"
+      "!dist/**",
+      "!addon/**"
     ]
   },
   "formatter": {
