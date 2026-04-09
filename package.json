@@ -27,10 +27,7 @@
     "safari",
     "react"
   ],
-  "author": "Addon Stack <addonbonedev@gmail.com>",
-  "contributors": [
-    "Anjey Tsibylskij (https://github.com/atldays)"
-  ],
+  "author": "Anjey Tsibylskij (https://github.com/atldays)",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
