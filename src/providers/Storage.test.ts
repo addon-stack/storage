@@ -141,8 +141,13 @@ test("update method - forwards lock options to custom storage locker", async () 
 
     const isolatedStorage = new Storage({locker});
     const controller = new AbortController();
+    const compare = () => false;
 
-    await isolatedStorage.update("counter", prev => (prev ?? 0) + 1, {signal: controller.signal, timeout: 25});
+    await isolatedStorage.update("counter", prev => (prev ?? 0) + 1, {
+        signal: controller.signal,
+        timeout: 25,
+        compare,
+    });
 
     expect(requests).toEqual([
         {
@@ -152,6 +157,87 @@ test("update method - forwards lock options to custom storage locker", async () 
     ]);
 
     expect(await isolatedStorage.get("counter")).toBe(1);
+});
+
+describe("update method - no-op writes", () => {
+    test.each([
+        ["primitive", "dark", () => "dark"],
+        ["object", {theme: "dark"}, (prev: {theme: string} | undefined) => ({...prev})],
+    ])("skips storage.set when the next %s value is equal", async (_, initialValue, updater) => {
+        await storage.set("settings", initialValue);
+
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        setSpy.mockClear();
+
+        await storage.update("settings", updater as any);
+
+        expect(setSpy).not.toHaveBeenCalled();
+        expect(await storage.get("settings")).toEqual(initialValue);
+    });
+
+    test("writes when the next value changes", async () => {
+        await storage.set("settings", {theme: "light"});
+
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        setSpy.mockClear();
+
+        await storage.update("settings", prev => ({...prev, theme: "dark"}));
+
+        expect(setSpy).toHaveBeenCalledTimes(1);
+        expect(await storage.get("settings")).toEqual({theme: "dark"});
+    });
+
+    test("writes when creating a missing value", async () => {
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        setSpy.mockClear();
+
+        await storage.update("settings", () => ({theme: "dark"}));
+
+        expect(setSpy).toHaveBeenCalledTimes(1);
+        expect(await storage.get("settings")).toEqual({theme: "dark"});
+    });
+
+    test("skips storage.remove when deleting an already missing value", async () => {
+        const removeSpy = chrome.storage.local.remove as jest.Mock;
+        removeSpy.mockClear();
+
+        await storage.update("missing", () => undefined);
+
+        expect(removeSpy).not.toHaveBeenCalled();
+    });
+
+    test("custom compare can force a write for equal values", async () => {
+        const initialValue = {theme: "dark"};
+        const nextValue = {theme: "dark"};
+        const compare = jest.fn(() => false);
+
+        await storage.set("settings", initialValue);
+
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        setSpy.mockClear();
+
+        await storage.update("settings", () => nextValue, {
+            compare,
+        });
+
+        expect(compare).toHaveBeenCalledWith(initialValue, nextValue);
+        expect(setSpy).toHaveBeenCalledTimes(1);
+        expect(await storage.get("settings")).toEqual({theme: "dark"});
+    });
+
+    test("custom compare can force a skip for unequal values", async () => {
+        await storage.set("settings", {theme: "light"});
+
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        setSpy.mockClear();
+
+        await storage.update("settings", () => ({theme: "dark"}), {
+            compare: () => true,
+        });
+
+        expect(setSpy).not.toHaveBeenCalled();
+        expect(await storage.get("settings")).toEqual({theme: "light"});
+    });
 });
 
 test("getAll method - returns all values from current namespace", async () => {

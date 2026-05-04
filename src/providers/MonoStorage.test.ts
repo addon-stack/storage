@@ -81,6 +81,48 @@ test("update serializes concurrent bucket mutations", async () => {
     expect(await mono.get("a")).toBe(2);
 });
 
+test("update skips physical bucket write when inner value is equal", async () => {
+    const mono = new MonoStorage<BucketState, typeof key>(key, base);
+    await mono.set("b", {x: 1});
+
+    const setSpy = chrome.storage.local.set as jest.Mock;
+    setSpy.mockClear();
+
+    await mono.update("b", prev => (prev && typeof prev === "object" ? {...prev} : {x: 1}));
+
+    expect(setSpy).not.toHaveBeenCalled();
+    expect(await mono.getAll()).toEqual({b: {x: 1}});
+});
+
+test("update skips physical bucket write when deleting an absent inner key", async () => {
+    const mono = new MonoStorage<BucketState, typeof key>(key, base);
+    await mono.set("a", 1);
+
+    const setSpy = chrome.storage.local.set as jest.Mock;
+    const removeSpy = chrome.storage.local.remove as jest.Mock;
+    setSpy.mockClear();
+    removeSpy.mockClear();
+
+    await mono.update("c", () => undefined);
+
+    expect(setSpy).not.toHaveBeenCalled();
+    expect(removeSpy).not.toHaveBeenCalled();
+    expect(await mono.getAll()).toEqual({a: 1});
+});
+
+test("update writes the physical bucket when inner value changes", async () => {
+    const mono = new MonoStorage<BucketState, typeof key>(key, base);
+    await mono.set("a", 1);
+
+    const setSpy = chrome.storage.local.set as jest.Mock;
+    setSpy.mockClear();
+
+    await mono.update("a", prev => (prev ?? 0) + 1);
+
+    expect(setSpy).toHaveBeenCalledTimes(1);
+    expect(await mono.getAll()).toEqual({a: 2});
+});
+
 test("getAll returns the whole bucket", async () => {
     const mono = new MonoStorage<BucketState, typeof key>(key, base);
     await mono.set("a", 1);

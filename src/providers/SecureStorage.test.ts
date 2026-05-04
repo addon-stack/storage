@@ -116,6 +116,23 @@ describe("set method", () => {
     });
 });
 
+describe("update method", () => {
+    test("skips encryption and storage write when decrypted value is equal", async () => {
+        await securedStorage.set("settings", {theme: "dark"});
+
+        const encryptSpy = crypto.subtle.encrypt as jest.Mock;
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        encryptSpy.mockClear();
+        setSpy.mockClear();
+
+        await securedStorage.update("settings", prev => ({...prev}));
+
+        expect(encryptSpy).not.toHaveBeenCalled();
+        expect(setSpy).not.toHaveBeenCalled();
+        expect((await securedStorage.getAll())["settings"]).toEqual({theme: "dark"});
+    });
+});
+
 describe("remove method", () => {
     test("deletes the key without namespace", async () => {
         await securedStorage.set("theme", "dark");

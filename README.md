@@ -132,6 +132,25 @@ await storage.update(
 );
 ```
 
+### Custom compare
+
+`update()` skips writes when the returned value is equal to the previous value.
+Pass `compare` when a specific update needs custom equality rules.
+
+```ts
+await storage.update(
+    "settings",
+    prev => ({...prev, theme: "dark"}),
+    {
+        compare: (prev, next) => prev?.version === next?.version,
+    }
+);
+```
+
+If `compare` returns `true`, the values are treated as equal and no write is made.
+This also means no `watch()` callbacks are triggered for that update. Use
+`compare: () => false` when you need to force a write and notification.
+
 ### Important note
 
 Atomic operations rely on the Web Locks API.
@@ -213,7 +232,9 @@ await popup.update("filters", prev => [...(prev ?? []), "pinned"]);
 const state = await popup.getAll();
 ```
 
-This keeps related values grouped and easier to manage.
+This keeps related values grouped and easier to manage. `MonoStorage.set()` updates
+one field inside the grouped object, so it performs the same locked bucket update
+as `MonoStorage.update()` instead of writing a separate top-level storage key.
 
 ## Watching changes
 
