@@ -1,5 +1,12 @@
 import {dequal as isEqual} from "dequal/lite";
-import type {StorageLockOptions, StorageProvider, StorageState, StorageUpdater, StorageWatchOptions} from "../types";
+import type {
+    StorageLockOptions,
+    StorageProvider,
+    StorageState,
+    StorageUpdateOptions,
+    StorageUpdater,
+    StorageWatchOptions,
+} from "../types";
 
 export default class MonoStorage<T extends StorageState, K extends string> implements StorageProvider<T> {
     constructor(
@@ -30,8 +37,10 @@ export default class MonoStorage<T extends StorageState, K extends string> imple
     public async update<KP extends keyof T>(
         key: KP,
         updater: StorageUpdater<T[KP]>,
-        options?: StorageLockOptions
+        options?: StorageUpdateOptions<T[KP]>
     ): Promise<T[KP] | undefined> {
+        const {compare = isEqual, ...lockOptions} = options ?? {};
+
         const nextBucket = await this.storage.update(
             this.key,
             async bucketValue => {
@@ -41,7 +50,7 @@ export default class MonoStorage<T extends StorageState, K extends string> imple
 
                 if (nextValue === undefined) {
                     if (!(key in bucket)) {
-                        return bucket;
+                        return bucketValue;
                     }
 
                     const next = {...bucket};
@@ -50,9 +59,13 @@ export default class MonoStorage<T extends StorageState, K extends string> imple
                     return Object.keys(next).length === 0 ? undefined : next;
                 }
 
+                if (compare(prevValue, nextValue)) {
+                    return bucketValue;
+                }
+
                 return {...bucket, [key]: nextValue};
             },
-            options
+            lockOptions
         );
 
         return nextBucket?.[key] as T[KP] | undefined;

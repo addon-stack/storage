@@ -17,6 +17,21 @@ export interface StorageLocker {
 
 export type StorageUpdater<T> = (prev: T | undefined) => T | undefined | Promise<T | undefined>;
 
+/**
+ * Equality check for `update()`. Return `true` to treat values as equal and skip the write.
+ *
+ * The comparer is not called when the updater returns `undefined`.
+ * For `SecureStorage`, values are decrypted before comparison.
+ */
+export type StorageUpdateComparer<T> = (prev: T | undefined, next: T | undefined) => boolean;
+
+export interface StorageUpdateOptions<T> extends StorageLockOptions {
+    /**
+     * Custom equality check for this update. Return `true` to skip the physical write.
+     */
+    compare?: StorageUpdateComparer<T>;
+}
+
 export type StorageWatchCallback<T> = <K extends keyof T>(
     newValue: T[K] | undefined,
     oldValue: T[K] | undefined,
@@ -36,7 +51,7 @@ export interface StorageProvider<T extends StorageState> {
     update<K extends keyof T>(
         key: K,
         updater: StorageUpdater<T[K]>,
-        options?: StorageLockOptions
+        options?: StorageUpdateOptions<T[K]>
     ): Promise<T[K] | undefined>;
 
     get<K extends keyof T>(key: K): Promise<T[K] | undefined>;

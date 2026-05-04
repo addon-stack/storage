@@ -98,6 +98,9 @@ await settings.remove("language");
 ## Atomic updates
 
 If the next value depends on the previous one, use `update()` instead of `get()` + `set()`.
+This is especially useful in browser extensions, where the same storage value can
+be updated from different contexts. Atomic updates keep each read-modify-write
+operation consistent, so one context does not overwrite changes made by another.
 
 ```ts
 interface CounterState {
@@ -109,13 +112,13 @@ const storage = Storage.Local<CounterState>();
 await storage.update("installCount", prev => (prev ?? 0) + 1);
 ```
 
-This is useful for:
+Use it for extension state that can be touched from more than one context:
 
-- counters;
-- retry state;
-- toggles;
-- queue metadata;
-- any concurrent read-modify-write flow.
+- install or usage counters;
+- retry state shared by background and UI;
+- popup or options toggles;
+- queue metadata for background jobs;
+- any read-modify-write flow shared across extension contexts.
 
 ### With timeout or abort signal
 
@@ -131,6 +134,25 @@ await storage.update(
     }
 );
 ```
+
+### Custom compare
+
+`update()` skips writes when the returned value is equal to the previous value.
+Pass `compare` when a specific update needs custom equality rules.
+
+```ts
+await storage.update(
+    "settings",
+    prev => ({...prev, theme: "dark"}),
+    {
+        compare: (prev, next) => prev?.version === next?.version,
+    }
+);
+```
+
+If `compare` returns `true`, the values are treated as equal and no write is made.
+This also means no `watch()` callbacks are triggered for that update. Use
+`compare: () => false` when you need to force a write and notification.
 
 ### Important note
 
@@ -213,7 +235,9 @@ await popup.update("filters", prev => [...(prev ?? []), "pinned"]);
 const state = await popup.getAll();
 ```
 
-This keeps related values grouped and easier to manage.
+This keeps related values grouped and easier to manage. `MonoStorage.set()` updates
+one field inside the grouped object, so it performs the same locked bucket update
+as `MonoStorage.update()` instead of writing a separate top-level storage key.
 
 ## Watching changes
 

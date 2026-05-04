@@ -1,5 +1,6 @@
 import {browser} from "@addon-core/browser";
 import {callWithPromise, handleListener} from "@addon-core/browser/utils";
+import {dequal as defaultCompare} from "dequal/lite";
 import LockManager from "../LockManager";
 import MonoStorage from "./MonoStorage";
 import type {
@@ -7,6 +8,7 @@ import type {
     StorageLockOptions,
     StorageProvider,
     StorageState,
+    StorageUpdateOptions,
     StorageUpdater,
     StorageWatchOptions,
 } from "../types";
@@ -152,8 +154,10 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     public async update<K extends keyof T>(
         key: K,
         updater: StorageUpdater<T[K]>,
-        options?: StorageLockOptions
+        options?: StorageUpdateOptions<T[K]>
     ): Promise<T[K] | undefined> {
+        const {compare = defaultCompare, ...lockOptions} = options ?? {};
+
         return await this.locker.request(
             this.getLockKey(key),
             async () => {
@@ -161,15 +165,23 @@ export default abstract class AbstractStorage<T extends StorageState> implements
                 const next = await updater(prev);
 
                 if (next === undefined) {
+                    if (prev === undefined) {
+                        return undefined;
+                    }
+
                     await this.removeUnlocked(key);
                     return undefined;
+                }
+
+                if (compare(prev, next)) {
+                    return next;
                 }
 
                 await this.setUnlocked(key, next);
 
                 return next;
             },
-            options
+            lockOptions
         );
     }
 
