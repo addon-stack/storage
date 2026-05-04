@@ -1,5 +1,35 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.6.0 (2026-05-04)
+
+
+### ✨ Features
+
+* add custom equality comparison for `update` method ([89874b9](https://github.com/addon-stack/storage/commit/89874b9654bc69803b39f7b34b6b4aeb78088dad))
+
+  - Introduce `compare` option for `update()` to skip writes based on custom equality logic.
+  - Extend `StorageUpdateOptions` with `compare` field for precise control over update logic.
+  - Ensure no-op writes do not trigger unnecessary updates or storage writes.
+  - Add comprehensive test coverage for `compare` usage.
+  - Update documentation with examples to demonstrate custom `compare` usage.
+
+
+
+### 📝 Documentation
+
+* improve atomic updates section in README ([f457ced](https://github.com/addon-stack/storage/commit/f457ced9e0f06258bb221bb612a85a26bd1edf24))
+
+  - Expand explanation of atomic updates for browser extensions.
+  - Provide examples for extension state shared across multiple contexts.
+  - Clarify use cases such as counters, retries, toggles, and queue metadata.
+
+
+
+
+### 🙌 Contributors
+
+- [Anjey Tsibylskij](https://github.com/atldays) (@atldays) — commits: 3
+
 ## 🚀 Release `@addon-core/storage` v0.5.0 (2026-04-09)
 
 

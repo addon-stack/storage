@@ -1,6 +1,6 @@
 {
   "name": "@addon-core/storage",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Typed storage for browser extensions with atomic updates, namespaces, encryption, and React bindings.",
   "type": "module",
   "license": "MIT",
