@@ -98,6 +98,9 @@ await settings.remove("language");
 ## Atomic updates
 
 If the next value depends on the previous one, use `update()` instead of `get()` + `set()`.
+This is especially useful in browser extensions, where the same storage value can
+be updated from different contexts. Atomic updates keep each read-modify-write
+operation consistent, so one context does not overwrite changes made by another.
 
 ```ts
 interface CounterState {
@@ -109,13 +112,13 @@ const storage = Storage.Local<CounterState>();
 await storage.update("installCount", prev => (prev ?? 0) + 1);
 ```
 
-This is useful for:
+Use it for extension state that can be touched from more than one context:
 
-- counters;
-- retry state;
-- toggles;
-- queue metadata;
-- any concurrent read-modify-write flow.
+- install or usage counters;
+- retry state shared by background and UI;
+- popup or options toggles;
+- queue metadata for background jobs;
+- any read-modify-write flow shared across extension contexts.
 
 ### With timeout or abort signal
 
