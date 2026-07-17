@@ -1,7 +1,7 @@
-import {createWebLocksMock, type WebLocksMock} from "../tests/helpers/webLocks";
-import LockManager from "./LockManager";
+import {createWebLocksMock, type WebLocksMock} from "../../tests/helpers/webLocks";
+import WebLockManager from "./WebLockManager";
 
-class TestLockManager extends LockManager {
+class TestWebLockManager extends WebLockManager {
     constructor(private readonly locks: WebLocksMock) {
         super("test");
     }
@@ -58,7 +58,7 @@ describe("createWebLocksMock", () => {
     });
 });
 
-describe("LockManager", () => {
+describe("WebLockManager", () => {
     const originalLocks = globalThis.navigator.locks;
 
     afterEach(() => {
@@ -74,7 +74,7 @@ describe("LockManager", () => {
     });
 
     test("runs tasks sequentially for the same lock name", async () => {
-        const lockManager = new TestLockManager(createWebLocksMock());
+        const lockManager = new TestWebLockManager(createWebLocksMock());
         const steps: string[] = [];
 
         await Promise.all([
@@ -100,7 +100,7 @@ describe("LockManager", () => {
             configurable: true,
         });
 
-        const lockManager = new LockManager();
+        const lockManager = new WebLockManager();
 
         await expect(lockManager.request("profile", async () => "ok")).rejects.toThrow(
             "Lock-coordinated storage update is unavailable: Web Locks API is not supported in this context."
@@ -108,7 +108,7 @@ describe("LockManager", () => {
     });
 
     test("aborts while waiting for a queued lock", async () => {
-        const lockManager = new TestLockManager(createWebLocksMock());
+        const lockManager = new TestWebLockManager(createWebLocksMock());
 
         let releaseFirstLock: (() => void) | undefined;
 
@@ -130,7 +130,7 @@ describe("LockManager", () => {
     });
 
     test("keeps later requests queued after an earlier waiter aborts", async () => {
-        const lockManager = new TestLockManager(createWebLocksMock());
+        const lockManager = new TestWebLockManager(createWebLocksMock());
         const steps: string[] = [];
 
         let releaseFirstLock: (() => void) | undefined;
@@ -182,7 +182,7 @@ describe("LockManager", () => {
     test("aborts when lock wait exceeds timeout", async () => {
         jest.useFakeTimers();
 
-        const lockManager = new TestLockManager(createWebLocksMock());
+        const lockManager = new TestWebLockManager(createWebLocksMock());
 
         let releaseFirstLock: (() => void) | undefined;
 
@@ -205,7 +205,7 @@ describe("LockManager", () => {
     test("cleans timeout and external abort listener when the lock is granted", async () => {
         jest.useFakeTimers();
 
-        const lockManager = new TestLockManager(createWebLocksMock());
+        const lockManager = new TestWebLockManager(createWebLocksMock());
         const controller = new AbortController();
         const removeEventListener = jest.spyOn(controller.signal, "removeEventListener");
 
@@ -245,7 +245,7 @@ describe("LockManager", () => {
     test("cleans timeout and external abort listener when lock acquisition is aborted", async () => {
         jest.useFakeTimers();
 
-        const lockManager = new TestLockManager(createWebLocksMock());
+        const lockManager = new TestWebLockManager(createWebLocksMock());
         let releaseFirstLock: (() => void) | undefined;
 
         const firstTask = lockManager.request("settings", async () => {
@@ -277,7 +277,7 @@ describe("LockManager", () => {
         const locks = {
             request: jest.fn().mockRejectedValue(new Error("Lock backend failed")),
         } as unknown as WebLocksMock;
-        const lockManager = new TestLockManager(locks);
+        const lockManager = new TestWebLockManager(locks);
         const controller = new AbortController();
         const removeEventListener = jest.spyOn(controller.signal, "removeEventListener");
 
@@ -293,7 +293,7 @@ describe("LockManager", () => {
     });
 
     test("releases the lock after a task failure", async () => {
-        const lockManager = new TestLockManager(createWebLocksMock());
+        const lockManager = new TestWebLockManager(createWebLocksMock());
 
         await expect(
             lockManager.request("settings", async () => {

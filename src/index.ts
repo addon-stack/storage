@@ -1,5 +1,5 @@
 export {StorageCorruptionError, StoragePartialUpdateError} from "./errors";
-export {default as LockManager} from "./LockManager";
+export {WebLockManager} from "./locking";
 export {MonoStorage, SecureStorage, Storage} from "./providers";
 export type {SecureStorageOptions, StorageOptions} from "./providers";
 export type {

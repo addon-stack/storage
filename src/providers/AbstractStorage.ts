@@ -3,7 +3,7 @@ import {callWithPromise, handleListener} from "@addon-core/browser/utils";
 import {dequal as defaultCompare} from "dequal/lite";
 import {planBatchUpdate} from "../batch";
 import {StoragePartialUpdateError} from "../errors";
-import LockManager from "../LockManager";
+import {WebLockManager} from "../locking";
 import {
     assertStorageKey,
     assertStorageNamespace,
@@ -170,7 +170,7 @@ export default abstract class AbstractStorage<T extends StorageState> implements
 
         this.area = area ?? "local";
         this.storage = storage()[this.area];
-        this.locker = locker ?? new LockManager(`storage:${this.area}`);
+        this.locker = locker ?? new WebLockManager(`storage:${this.area}`);
         this.namespace = normalizedNamespace;
     }
 

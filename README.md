@@ -584,6 +584,9 @@ Every storage instance exposes the same small API:
 
 ## Custom locking
 
+Storage providers use the exported `WebLockManager` by default. It coordinates
+updates through the native Web Locks API.
+
 If you need custom lock behavior, pass your own `locker`:
 
 ```ts

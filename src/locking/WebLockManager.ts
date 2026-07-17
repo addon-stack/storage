@@ -1,11 +1,11 @@
-import type {StorageLocker, StorageLockOptions} from "./types";
+import type {StorageLocker, StorageLockOptions} from "../types";
 
 interface LockRequestSignal {
     signal: AbortSignal | undefined;
     cleanup: () => void;
 }
 
-export default class LockManager implements StorageLocker {
+export default class WebLockManager implements StorageLocker {
     constructor(protected readonly prefix: string = "storage") {}
 
     public async request<T>(name: string, task: () => Promise<T>, options: StorageLockOptions = {}): Promise<T> {
