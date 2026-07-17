@@ -103,3 +103,15 @@ export interface StorageProvider<T extends StorageState = StorageState> {
 
     subscribe(callback: StorageSubscriber<T>): () => void;
 }
+
+export interface StorageHelper<Options extends object> {
+    <State extends StorageState = StorageState>(options?: Options): StorageProvider<State>;
+
+    <Value = any>(key: string): Promise<Value | undefined>;
+
+    <Value = any>(key: string, value: StorageSetValue<Value>): Promise<void>;
+
+    <Key extends string>(keys: readonly Key[]): Promise<Partial<Record<Key, any>>>;
+
+    <Result extends StorageState>(keys: readonly (keyof Result)[]): Promise<Partial<Result>>;
+}

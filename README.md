@@ -24,6 +24,7 @@ storage, and React bindings.
 
 - Typed single-key and batch overloads for `get`, `set`, and `update`
 - Optional state contracts for both quick experimentation and strict typing
+- Laravel-style functional helpers for provider creation and one-shot reads/writes
 - Lock-coordinated `update()` for race-safe single-key and batch writes
 - Per-key and per-event subscriptions through `watch()` and `subscribe()`
 - `local`, `session`, `sync`, and `managed` storage areas
@@ -92,6 +93,94 @@ compile-time schema. It does not relax the package's runtime validation—top-le
 `undefined` is still rejected, invalid keys still throw, and the browser's
 serialization rules still apply. Add a state interface when the shape becomes
 stable and key/value mistakes should be caught by TypeScript.
+
+## Functional helpers
+
+Use the functional API when a class factory is more ceremony than the operation
+needs:
+
+```ts
+import {
+    storage,
+    storageLocal,
+    storageManaged,
+    storageSecure,
+    storageSession,
+    storageSync,
+} from "@addon-core/storage";
+
+await storageLocal<string>("draft", "Hello");
+
+const draft = await storageLocal<string>("draft");
+// string | undefined
+
+const selected = await storageSync<{
+    language?: string;
+    theme?: "light" | "dark";
+}>(["theme", "language"]);
+// Partial<{language?: string; theme?: "light" | "dark"}>
+```
+
+With one string argument the generic describes the expected value. With a key
+array it describes the returned map. Without a generic, one-shot operations use
+the loose default state and values are `any`.
+
+Calling a helper without a key returns a real provider rather than a proxy or a
+callable facade:
+
+```ts
+interface UserSettings {
+    attempts?: number;
+    theme?: "light" | "dark";
+}
+
+const settings = storageSync<UserSettings>({namespace: "settings"});
+
+await settings.set("theme", "dark");
+await settings.update("attempts", value => (value ?? 0) + 1);
+```
+
+`storage()` selects local storage by default and accepts an explicit `area`.
+`storageLocal()`, `storageSession()`, `storageSync()`, and `storageManaged()`
+select a fixed area and therefore do not accept an `area` option.
+
+Secure helpers use one general function to avoid multiplying area-specific
+exports:
+
+```ts
+interface AuthState {
+    accessToken?: string;
+}
+
+const auth = storageSecure<AuthState>({
+    area: "session",
+    namespace: "auth",
+    secureKey: "AppSecret",
+});
+
+await auth.set("accessToken", "jwt-token");
+```
+
+Pass `{key}` to any provider-form helper to create `MonoStorage`. A plain object
+argument is always interpreted as helper options, so direct batch set is not a
+helper overload. Create a provider and use its regular method instead:
+
+```ts
+const local = storageLocal<UserSettings>();
+
+await local.set({
+    attempts: 1,
+    theme: "dark",
+});
+```
+
+Every helper invocation creates a new provider. Keep the returned provider when
+performing a series of operations, especially with namespaces, custom lockers,
+or secure storage. In particular, every one-shot `storageSecure()` call creates
+a new provider and repeats the SHA-256 digest and AES key import. Reuse one secure
+provider for a series of encrypted operations. Top-level `undefined` remains
+invalid for set operations, and managed storage retains its browser-enforced
+read-only behavior.
 
 ## Typed storage without boilerplate
 
