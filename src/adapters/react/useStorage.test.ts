@@ -56,6 +56,26 @@ describe("behavior of default value", () => {
     });
 });
 
+test("creates the default Storage.Local provider only once across rerenders", async () => {
+    const localSpy = jest.spyOn(Storage, "Local");
+
+    try {
+        const {rerender, result} = renderHook(
+            ({defaultValue}: {defaultValue: string}) => useStorage("theme", defaultValue),
+            {initialProps: {defaultValue: "light"}}
+        );
+
+        await waitFor(() => expect(result.current[0]).toBe("light"));
+
+        rerender({defaultValue: "dark"});
+
+        await waitFor(() => expect(result.current[0]).toBe("dark"));
+        expect(localSpy).toHaveBeenCalledTimes(1);
+    } finally {
+        localSpy.mockRestore();
+    }
+});
+
 test("works correctly with SecureStorage instances", async () => {
     const storage = new SecureStorage({namespace: "user"});
     const {result} = renderHook(() => useStorage({key: "theme", storage}));

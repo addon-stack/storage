@@ -1,16 +1,105 @@
-import AbstractStorage, {type StorageOptions} from "./AbstractStorage";
-import type {StorageLockOptions, StorageState, StorageWatchOptions} from "../types";
+import {STORAGE_KEY_SEPARATOR} from "../constants";
+import {StorageCorruptionError} from "../errors";
+import {createRecord, hasOwn, setRecordValue} from "../utils";
+import AbstractStorage, {
+    type AreaOptions,
+    type FactoryOptions,
+    type StaticMake,
+    type StorageOptions,
+} from "./AbstractStorage";
+import type {StorageLockOptions, StorageProvider, StorageState} from "../types";
 
 type StorageChange = chrome.storage.StorageChange;
+
+const ABSENT = Symbol("absent secure storage value");
 
 export interface SecureStorageOptions extends StorageOptions {
     secureKey?: string;
 }
 
+type SecureStorageFactoryOptions = SecureStorageOptions & {key?: string};
+type SecureStorageAreaOptions = Omit<SecureStorageFactoryOptions, "area">;
+
 export default class SecureStorage<T extends StorageState> extends AbstractStorage<T> {
     private readonly secureKey: string;
 
     private cryptoKey: CryptoKey | null = null;
+    private cryptoKeyPromise: Promise<CryptoKey> | null = null;
+
+    public static override make<S extends StorageState>(options?: SecureStorageFactoryOptions): StorageProvider<S>;
+    public static override make<
+        S extends StorageState,
+        O extends StorageOptions = StorageOptions,
+        C extends new (
+            options?: O
+        ) => StorageProvider<S> = new (
+            options?: O
+        ) => StorageProvider<S>,
+    >(this: C, options?: FactoryOptions<C>): StorageProvider<S>;
+    public static override make(options?: any): StorageProvider<StorageState> {
+        // biome-ignore lint/complexity/noThisInStatic: Preserve polymorphic static factory dispatch.
+        return super.make(options);
+    }
+
+    public static override Local<S extends StorageState>(options?: SecureStorageAreaOptions): StorageProvider<S>;
+    public static override Local<
+        S extends StorageState,
+        O extends StorageOptions = StorageOptions,
+        C extends new (
+            options?: O
+        ) => StorageProvider<S> = new (
+            options?: O
+        ) => StorageProvider<S>,
+    >(this: C & {make: StaticMake<S, O>}, options?: AreaOptions<C>): StorageProvider<S>;
+    public static override Local(options?: any): StorageProvider<StorageState> {
+        // biome-ignore lint/complexity/noThisInStatic: Preserve polymorphic static factory dispatch.
+        return this.make({...options, area: "local"});
+    }
+
+    public static override Session<S extends StorageState>(options?: SecureStorageAreaOptions): StorageProvider<S>;
+    public static override Session<
+        S extends StorageState,
+        O extends StorageOptions = StorageOptions,
+        C extends new (
+            options?: O
+        ) => StorageProvider<S> = new (
+            options?: O
+        ) => StorageProvider<S>,
+    >(this: C & {make: StaticMake<S, O>}, options?: AreaOptions<C>): StorageProvider<S>;
+    public static override Session(options?: any): StorageProvider<StorageState> {
+        // biome-ignore lint/complexity/noThisInStatic: Preserve polymorphic static factory dispatch.
+        return this.make({...options, area: "session"});
+    }
+
+    public static override Sync<S extends StorageState>(options?: SecureStorageAreaOptions): StorageProvider<S>;
+    public static override Sync<
+        S extends StorageState,
+        O extends StorageOptions = StorageOptions,
+        C extends new (
+            options?: O
+        ) => StorageProvider<S> = new (
+            options?: O
+        ) => StorageProvider<S>,
+    >(this: C & {make: StaticMake<S, O>}, options?: AreaOptions<C>): StorageProvider<S>;
+    public static override Sync(options?: any): StorageProvider<StorageState> {
+        // biome-ignore lint/complexity/noThisInStatic: Preserve polymorphic static factory dispatch.
+        return this.make({...options, area: "sync"});
+    }
+
+    public static override Managed<S extends StorageState>(options?: SecureStorageAreaOptions): StorageProvider<S>;
+    public static override Managed<
+        S extends StorageState,
+        O extends StorageOptions = StorageOptions,
+        C extends new (
+            options?: O
+        ) => StorageProvider<S> = new (
+            options?: O
+        ) => StorageProvider<S>,
+    >(this: C & {make: StaticMake<S, O>}, options?: AreaOptions<C>): StorageProvider<S>;
+    public static override Managed(options?: any): StorageProvider<StorageState> {
+        // biome-ignore lint/complexity/noThisInStatic: Preserve polymorphic static factory dispatch.
+        return this.make({...options, area: "managed"});
+    }
 
     constructor({secureKey, ...options}: SecureStorageOptions = {}) {
         super(options);
@@ -23,16 +112,24 @@ export default class SecureStorage<T extends StorageState> extends AbstractStora
             return this.cryptoKey;
         }
 
-        const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(this.secureKey));
+        if (!this.cryptoKeyPromise) {
+            this.cryptoKeyPromise = (async () => {
+                const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(this.secureKey));
 
-        const key = await crypto.subtle.importKey("raw", hash.slice(0, 32), {name: "AES-GCM"}, false, [
-            "encrypt",
-            "decrypt",
-        ]);
+                return await crypto.subtle.importKey("raw", hash.slice(0, 32), {name: "AES-GCM"}, false, [
+                    "encrypt",
+                    "decrypt",
+                ]);
+            })();
+        }
 
-        this.cryptoKey = key;
+        try {
+            this.cryptoKey = await this.cryptoKeyPromise;
 
-        return key;
+            return this.cryptoKey;
+        } finally {
+            this.cryptoKeyPromise = null;
+        }
     }
 
     private async encrypt(data: any): Promise<string> {
@@ -65,70 +162,135 @@ export default class SecureStorage<T extends StorageState> extends AbstractStora
         return JSON.parse(new TextDecoder().decode(decrypted));
     }
 
-    protected async setUnlocked<K extends keyof T>(key: K, value: T[K]): Promise<void> {
-        if (value === undefined) {
-            return;
+    private async decodeStoredValue(value: unknown | typeof ABSENT, key: PropertyKey): Promise<any | undefined> {
+        if (value === ABSENT) {
+            return undefined;
         }
 
+        if (typeof value !== "string" || value.length === 0) {
+            throw new StorageCorruptionError(
+                "SecureStorage",
+                key,
+                new TypeError("Encrypted storage value must be a non-empty string.")
+            );
+        }
+
+        try {
+            return await this.decrypt(value);
+        } catch (error) {
+            throw new StorageCorruptionError("SecureStorage", key, error);
+        }
+    }
+
+    private async decodeChangeSide(
+        changes: StorageChange,
+        side: "newValue" | "oldValue",
+        key: PropertyKey
+    ): Promise<any | undefined> {
+        const value = hasOwn(changes, side) ? changes[side] : ABSENT;
+
+        return await this.decodeStoredValue(value === undefined ? ABSENT : value, key);
+    }
+
+    protected async setUnlocked<K extends keyof T>(key: K, value: T[K]): Promise<void> {
         const encryptedValue = await this.encrypt(value);
 
         await super.setUnlocked(key, encryptedValue as T[K]);
     }
 
-    protected async getUnlocked<K extends keyof T>(key: K): Promise<T[K] | undefined> {
-        const encryptedValue = (await super.getUnlocked(key)) as string;
+    protected async setBatchUnlocked(values: Partial<T>): Promise<void> {
+        const encryptedEntries = await Promise.all(
+            (Object.keys(values) as (keyof T)[]).map(async key => {
+                const value = values[key];
+                return [key, await this.encrypt(value)] as const;
+            })
+        );
+        const encryptedValues = createRecord<Partial<T>>();
 
-        return encryptedValue ? this.decrypt(encryptedValue) : undefined;
+        for (const [key, value] of encryptedEntries) {
+            setRecordValue(encryptedValues, key, value as T[typeof key]);
+        }
+
+        await super.setBatchUnlocked(encryptedValues);
+    }
+
+    protected async getUnlocked<K extends keyof T>(key: K): Promise<T[K] | undefined> {
+        const fullKey = this.getFullKey(key);
+        const encryptedValues = await this.getStoredItems(fullKey);
+        const encryptedValue = hasOwn(encryptedValues, fullKey) ? encryptedValues[fullKey] : ABSENT;
+
+        return await this.decodeStoredValue(encryptedValue, key);
+    }
+
+    protected async getBatchUnlocked<K extends keyof T>(keys: readonly K[]): Promise<Partial<Pick<T, K>>> {
+        const encryptedValues = await super.getBatchUnlocked(keys);
+        const decryptedEntries = await Promise.all(
+            (Object.keys(encryptedValues) as K[]).map(async key => {
+                const encryptedValue = encryptedValues[key];
+                return [key, await this.decodeStoredValue(encryptedValue, key)] as const;
+            })
+        );
+        const decryptedValues = createRecord<Partial<Pick<T, K>>>();
+
+        for (const [key, value] of decryptedEntries) {
+            setRecordValue(decryptedValues, key, value as T[K]);
+        }
+
+        return decryptedValues;
     }
 
     public async getAll(): Promise<Partial<T>> {
-        const encryptedValues = await super.getAll();
+        const encryptedValues = await this.getAllStoredValues();
 
-        const decryptedValues: Partial<Record<keyof T, any>> = {};
+        const decryptedValues = createRecord<Partial<Record<keyof T, any>>>();
 
-        for (const [key, value] of Object.entries(encryptedValues as Record<string, any>)) {
-            decryptedValues[key as keyof T] = value ? await this.decrypt(String(value)) : undefined;
+        const entries = await Promise.all(
+            Object.entries(encryptedValues as Record<string, unknown>).map(async ([key, value]) => [
+                key,
+                await this.decodeStoredValue(value, key),
+            ])
+        );
+
+        for (const [key, value] of entries) {
+            setRecordValue(decryptedValues, key, value);
         }
 
         return decryptedValues as Partial<T>;
     }
 
     public async clear(options?: StorageLockOptions): Promise<void> {
-        const allValues = await super.getAll();
+        const allValues = await this.getAllStoredValues();
 
         await this.remove(Object.keys(allValues), options);
     }
 
-    protected isKeyValid(key: string): boolean {
-        if (!super.isKeyValid(key)) return false;
+    protected async formatChange<P extends T>(
+        key: keyof P,
+        changes: StorageChange
+    ): Promise<{
+        key: keyof P;
+        newValue: P[keyof P] | undefined;
+        oldValue: P[keyof P] | undefined;
+    }> {
+        const [newValue, oldValue] = await Promise.all([
+            this.decodeChangeSide(changes, "newValue", key),
+            this.decodeChangeSide(changes, "oldValue", key),
+        ]);
 
-        return key.startsWith(`secure${this.separator}`);
-    }
-
-    protected async handleChange<P extends T>(
-        key: string,
-        changes: StorageChange,
-        options: StorageWatchOptions<P>
-    ): Promise<void> {
-        const newValue = typeof changes.newValue === "string" ? await this.decrypt(changes.newValue) : undefined;
-        const oldValue = typeof changes.oldValue === "string" ? await this.decrypt(changes.oldValue) : undefined;
-
-        await this.triggerChange(key, {newValue, oldValue}, options);
+        return {key, newValue, oldValue};
     }
 
     protected getFullKey(key: keyof T): string {
-        const parts: string[] = ["secure"];
+        const logicalKey = this.toLogicalKey(key);
 
-        if (this.namespace) {
-            parts.push(this.namespace);
-        }
-
-        return [...parts, key.toString()].join(this.separator);
+        return ["secure", this.namespace ?? "", logicalKey].join(STORAGE_KEY_SEPARATOR);
     }
 
-    protected getNamespaceOfKey(key: string): string | undefined {
-        const fullKeyParts = key.split(this.separator);
+    protected decodeFullKey(fullKey: string): keyof T | null {
+        const parts = fullKey.split(STORAGE_KEY_SEPARATOR);
 
-        return fullKeyParts.length === 3 ? fullKeyParts[1] : undefined;
+        return parts.length === 3 && parts[0] === "secure" && parts[1] === (this.namespace ?? "")
+            ? (parts[2] as keyof T)
+            : null;
     }
 }

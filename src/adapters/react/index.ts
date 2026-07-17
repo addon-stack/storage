@@ -1,1 +1,6 @@
-export {default as useStorage, type UseStorageOptions, type UseStorageReturnValue} from "./useStorage";
+export {
+    default as useStorage,
+    type UseStorageOptions,
+    type UseStorageProvider,
+    type UseStorageReturnValue,
+} from "./useStorage";

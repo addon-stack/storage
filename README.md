@@ -1,6 +1,7 @@
 # @addon-core/storage
 
-Typed storage for browser extensions with namespaces, atomic updates, encrypted values, bucket-style storage, and React bindings.
+Typed storage for browser extensions with namespaces, lock-coordinated updates, encrypted values, bucket-style
+storage, and React bindings.
 
 [![npm version](https://img.shields.io/npm/v/%40addon-core%2Fstorage.svg?logo=npm&style=for-the-badge)](https://www.npmjs.com/package/@addon-core/storage)
 [![npm downloads](https://img.shields.io/npm/dm/%40addon-core%2Fstorage.svg?style=for-the-badge&color=blue)](https://www.npmjs.com/package/@addon-core/storage)
@@ -21,8 +22,9 @@ Typed storage for browser extensions with namespaces, atomic updates, encrypted 
 
 ## Features
 
-- Simple API: `set`, `get`, `update`, `getAll`, `remove`, `clear`, `watch`
-- Atomic `update()` for race-safe writes
+- Typed single-key and batch overloads for `get`, `set`, and `update`
+- Lock-coordinated `update()` for race-safe single-key and batch writes
+- Per-key and per-event subscriptions through `watch()` and `subscribe()`
 - `local`, `session`, `sync`, and `managed` storage areas
 - Namespaces for isolating module data
 - `SecureStorage` with AES-GCM encryption
@@ -95,12 +97,125 @@ const theme = await settings.get("theme");
 await settings.remove("language");
 ```
 
-## Atomic updates
+## Batch operations
+
+Pass an array of keys or an object of values to the regular `get`, `set`, and
+`update` methods when several values should be handled together. The overloads
+preserve the same key and value types as their single-key forms.
+
+Read selected keys with one native storage request:
+
+```ts
+const values = await settings.get(["theme", "language"] as const);
+
+console.log(values.theme);
+console.log(values.language);
+```
+
+Missing keys are omitted from the returned object. An empty key list returns an
+empty object.
+
+Write several values with one native `storage.set()` call:
+
+```ts
+await settings.set({
+    theme: "dark",
+    language: "uk",
+    shortcutsEnabled: true,
+});
+```
+
+Both forms of `set()` reject `undefined` before encryption, locking, or native
+I/O. Use `remove(keys)` or an `update()` patch when keys should be deleted. The
+object form must be a plain object; arrays, class instances, and other values are
+rejected instead of being interpreted as key maps.
+
+`set()` means "perform this write" and does not elide deeply equal values.
+`update()` is the conditional API: its comparer decides whether a physical write
+is needed. `watch()` and `subscribe()` still report only logical value changes.
+
+When values change, this single native write produces one `storage.onChanged`
+event containing the changed keys. Use `subscribe()` when the package-level
+subscriber should also run once for that event.
+
+### Lock-coordinated batch updates
+
+The array overload of `update()` locks the selected keys, reads one snapshot,
+and applies the returned patch without races against other lock-aware package
+operations:
+
+```ts
+const next = await settings.update(
+    ["theme", "language", "shortcutsEnabled"] as const,
+    prev => ({
+        theme: prev.theme === "dark" ? "light" : "dark",
+        language: prev.language ?? "en",
+    })
+);
+
+console.log(next.theme);
+```
+
+The updater may be synchronous or asynchronous. A selected key omitted from the
+patch stays unchanged. An own property whose value is `undefined` removes that
+key. Returning a key that was not included in the key list throws before any
+write is made. The returned object is the final snapshot of the selected keys;
+removed keys are omitted.
+
+Lock acquisition and equality checks can be configured for the whole batch:
+
+```ts
+const controller = new AbortController();
+
+await settings.update(
+    ["theme", "language"] as const,
+    prev => ({
+        theme: "dark",
+        language: prev.language ?? "en",
+    }),
+    {
+        signal: controller.signal,
+        timeout: 500,
+        compare: {
+            theme: (prev, next) => prev === next,
+        },
+    }
+);
+```
+
+Keys use deep equality by default, just like `update()`. A key-specific
+`compare` function returns `true` to treat that logical key as unchanged. For
+`MonoStorage`, another changed key may still cause the shared bucket to be
+written.
+
+The `timeout` applies to each selected lock acquisition, not as one deadline
+for the whole batch. Direct `set()` calls and raw native storage writes do not
+participate in these locks.
+
+For regular `Storage` and `SecureStorage`, a patch that both writes values and
+deletes keys requires one native `set()` followed by one native `remove()`.
+That mixed operation therefore emits two native change events. If one event is
+required, keep writes and deletions out of the same patch, or use `MonoStorage`,
+where the logical values share one physical bucket. Consequently,
+`subscribe()` can run twice for a mixed regular or secure update, while the
+same `MonoStorage` update changes its bucket once and produces one callback.
+
+This two-phase operation is not a transaction. If `set()` completes and the
+following `remove()` fails, the promise rejects with
+`StoragePartialUpdateError`. Its `appliedSetKeys` and `attemptedRemoveKeys`
+arrays contain logical keys, while `cause` contains the native removal error.
+Only regular `Storage` and `SecureStorage` can throw this error; `MonoStorage`
+commits the logical batch through one physical bucket operation. No rollback is
+attempted. Extension context termination between the two native calls can leave
+the same torn state without an observable JavaScript exception.
+
+## Lock-coordinated updates
 
 If the next value depends on the previous one, use `update()` instead of `get()` + `set()`.
 This is especially useful in browser extensions, where the same storage value can
-be updated from different contexts. Atomic updates keep each read-modify-write
-operation consistent, so one context does not overwrite changes made by another.
+be updated from different contexts. Lock-coordinated updates keep each
+read-modify-write operation consistent with other package operations that use
+the same locks, so one context does not overwrite changes made by another.
 
 ```ts
 interface CounterState {
@@ -152,16 +267,26 @@ await storage.update(
 
 If `compare` returns `true`, the values are treated as equal and no write is made.
 This also means no `watch()` callbacks are triggered for that update. Use
-`compare: () => false` when you need to force a write and notification.
+`compare: () => false` when you need to force a physical write. It cannot force
+a logical notification: `storage.onChanged` contains no provenance for the
+write, and equal logical values are filtered by observers.
 
 ### Important note
 
-Atomic operations rely on the Web Locks API.
+Lock-coordinated operations rely on the Web Locks API.
 
-- `update()` uses locking for safe writes;
+- both overloads of `update()` use locking for safe writes;
+- `Storage` and `SecureStorage` acquire selected key locks in a stable order,
+  while `MonoStorage` locks its single physical bucket;
 - `remove()` and `clear()` are lock-aware too;
-- `set()` and `get()` still work without Web Locks;
-- if Web Locks are unavailable, atomic operations will throw.
+- reads work without Web Locks;
+- direct `Storage` and `SecureStorage` writes through either `set()` overload do
+  not require Web Locks, while `MonoStorage` locks these writes because changing
+  a logical field is a read-modify-write of its bucket;
+- if Web Locks are unavailable, lock-coordinated operations will throw.
+
+`signal` and `timeout` apply only while a lock request is queued. Once the lock
+has been granted, aborting the signal does not cancel the updater.
 
 ## Storage areas
 
@@ -174,6 +299,13 @@ const sync = Storage.Sync<{theme?: string}>();
 const managed = Storage.Managed<{policyEnabled?: boolean}>();
 ```
 
+The `managed` area is read-only. Both `get()` overloads and `getAll()` can read
+managed policy values. A mutation rejects when it reaches a native managed-area
+write. A package-level no-op may still resolve because no native write is made;
+examples include `set({})`, `update([])`, `remove([])`, and an `update()` whose
+result compares equal to the current value. Do not interpret a resolved no-op as
+write access to managed storage.
+
 ## Namespaces
 
 Use namespaces when different modules may use the same key names.
@@ -184,6 +316,15 @@ const ui = Storage.Local<{token?: string}>({namespace: "ui"});
 ```
 
 These storage instances stay isolated even if the key name is the same.
+
+The colon (`:`) is reserved as the separator in physical storage keys.
+Namespaces and top-level logical keys used by `Storage` or `SecureStorage`
+therefore cannot contain `:`. The physical bucket key passed as `{key}` to a
+package factory follows the same rule, while logical field names inside a
+`MonoStorage` bucket may contain `:`. Entries previously written with a colon in
+a restricted component are not migrated or removed automatically; clean them up
+by their exact physical key through the native `chrome.storage.<area>` API before
+using the provider.
 
 ## Secure storage
 
@@ -208,6 +349,56 @@ const token = await authStorage.get("accessToken");
 
 Use it for tokens, sensitive flags, or other small private values.
 
+Secure physical keys always have three segments:
+
+```text
+secure:<namespace-or-empty>:<logical-key>
+```
+
+For example, an unnamespaced `theme` key is stored as `secure::theme`, while an
+`accessToken` in the `auth` namespace is stored as `secure:auth:accessToken`.
+This fixed shape keeps unnamespaced secure data separate from plain
+`Storage({namespace: "secure"})`, whose corresponding key is `secure:theme`.
+
+Older namespaced SecureStorage keys already use the current shape and require no
+migration. Older unnamespaced keys used `secure:key` and are not read, migrated,
+or removed automatically. Migrate only explicitly known legacy SecureStorage
+entries through the matching native storage area:
+
+```ts
+const legacyKey = "secure:theme";
+const currentKey = "secure::theme";
+const values = await chrome.storage.local.get([legacyKey, currentKey]);
+
+if (Object.prototype.hasOwnProperty.call(values, currentKey)) {
+    throw new Error(`Refusing to overwrite ${currentKey}`);
+}
+
+if (Object.prototype.hasOwnProperty.call(values, legacyKey)) {
+    await chrome.storage.local.set({[currentKey]: values[legacyKey]});
+    await chrome.storage.local.remove(legacyKey);
+}
+```
+
+The ciphertext can be copied without decryption because the physical key is not
+used as AES-GCM additional authenticated data. Do not migrate `secure:key` by
+pattern alone: the same legacy key may belong to plain
+`Storage({namespace: "secure"})`.
+
+`SecureStorage` treats a present empty, non-string, or undecipherable value as
+corruption and throws the exported `StorageCorruptionError`. Its `provider` and
+`key` identify the failed logical entry, and `cause` preserves the format or
+decryption error. A corrupted key rejects `get()`, a selected-key batch `get()`,
+and the whole `getAll()` result; reads do not silently fall back to defaults.
+This can intentionally fail an extension boot path that depends on `getAll()`.
+
+Direct `SecureStorage` operations can recover known corrupted data without
+decrypting it: overwrite the key with `set()`, delete a known key with `remove()`,
+or delete the provider contents with `clear()`. `remove()` and `clear()` never
+decrypt stored ciphertext. `getAll()`, events, and `clear()` only consider keys
+with the exact current physical shape; malformed and legacy keys require raw
+cleanup.
+
 ## MonoStorage
 
 `MonoStorage` is useful when one feature should live under a single top-level storage key.
@@ -229,15 +420,36 @@ const popup = Storage.Local<PopupState>({key: "popup"});
 Then use it like a regular storage instance:
 
 ```ts
-await popup.set("search", "open tabs");
+await popup.set({
+    search: "open tabs",
+    selectedTab: "overview",
+});
 await popup.update("filters", prev => [...(prev ?? []), "pinned"]);
 
 const state = await popup.getAll();
 ```
 
-This keeps related values grouped and easier to manage. `MonoStorage.set()` updates
-one field inside the grouped object, so it performs the same locked bucket update
-as `MonoStorage.update()` instead of writing a separate top-level storage key.
+This keeps related values grouped and easier to manage. `MonoStorage.set()`
+performs one locked bucket update and writes even when the supplied logical value
+is deeply equal. Its batch writes and updates also change that bucket only once.
+A present non-plain-object bucket is treated as corrupted rather than as an empty
+bucket. `clear()` can still remove it without decoding it.
+
+### Corruption recovery
+
+Recovery differs because `SecureStorage` stores keys independently, while
+`MonoStorage` must decode its complete bucket before changing one logical field:
+
+| Provider | `set()` | `remove()` | `clear()` |
+| --- | --- | --- | --- |
+| `SecureStorage` | Recovers a known key by replacing its ciphertext without reading the old value. | Recovers known keys by removing their physical entries without decrypting them. | Enumerates matching physical keys and removes them without decrypting their values. |
+| `MonoStorage` over `Storage` | Cannot recover a corrupted bucket because changing one field first reads and decodes the bucket. | Cannot remove a logical field from a corrupted bucket for the same reason. | Recovers by removing the single physical bucket directly. |
+| `MonoStorage` over `SecureStorage` | Cannot recover a corrupted ciphertext or decoded bucket because changing one field first decrypts and decodes the bucket. | Cannot remove a logical field from a corrupted bucket for the same reason. | Recovers by removing the encrypted physical bucket without decrypting it. |
+
+For a corrupted `MonoStorage` bucket, use `clear()` or remove/replace its exact
+physical bucket through the underlying provider or native storage API. Ordinary
+logical `set()`, `update()`, and `remove()` calls intentionally fail instead of
+coercing damaged data into a new bucket.
 
 ## Watching changes
 
@@ -249,7 +461,7 @@ const unsubscribe = settings.watch((next, prev, key) => {
 });
 ```
 
-Or subscribe only to specific keys:
+Or watch only specific keys:
 
 ```ts
 const unsubscribe = settings.watch({
@@ -261,6 +473,60 @@ const unsubscribe = settings.watch({
     },
 });
 ```
+
+`watch()` is key-oriented: when one native storage event contains several keys,
+its global callback runs once for each changed logical key. Use `subscribe()` to
+handle the same event as one typed changes map:
+
+```ts
+const unsubscribe = settings.subscribe(changes => {
+    if (changes.theme) {
+        console.log("theme", changes.theme.oldValue, "->", changes.theme.newValue);
+    }
+
+    if (changes.language) {
+        console.log("language", changes.language.oldValue, "->", changes.language.newValue);
+    }
+});
+```
+
+`subscribe()` handles each matching native event after namespace filtering and
+deep-equality filtering. `SecureStorage` decrypts the values first, and
+`MonoStorage` expands its physical bucket change into logical key changes. The
+subscriber runs once with the remaining logical changes, or is not called when
+every entry is unchanged. Each entry contains the logical key's `oldValue` and
+`newValue`; this also normalizes Firefox events that may include unchanged keys
+passed to `set()`.
+
+Events are formatted in FIFO order for each registration, so the callback for an
+earlier event is invoked before the callback for a later event. Returned callback
+promises are observed for rejection but are not awaited; asynchronous callbacks
+may overlap and cannot block later storage events.
+
+Calling the returned unsubscribe function immediately removes the native
+listener, clears queued events, and prevents delivery after an in-progress
+format/decrypt step finishes.
+
+Corruption or another internal formatting failure disposes that registration and
+is surfaced as an uncaught asynchronous exception. There is no `onError` option,
+and a `try/catch` around `watch()` or `subscribe()` cannot catch an error produced
+by a later native event. User callback throws and promise rejections are also
+surfaced as uncaught asynchronous exceptions, but they do not dispose the
+registration; other key handlers and later events continue to run.
+
+For `SecureStorage`, one corrupted matching entry in a multi-key native event
+rejects the whole logical event: valid sibling changes from the same provider
+scope are not delivered partially, the registration is disposed, and its queued
+events are discarded. This includes an unwatched sibling key in the same area
+and namespace; entries from another namespace are filtered out first. The
+failure is scoped to that `watch()` or `subscribe()` registration; separately
+registered listeners process matching entries independently and can fail in the
+same way.
+
+In a persistent MV2 background page, an internally failed registration remains
+disposed until the page reloads. An MV3 service worker registers it again after a
+later wake-up, so repeating corrupted input can produce a visible crash loop
+instead of a permanently silent listener.
 
 ## React
 
@@ -307,13 +573,14 @@ export function ThemeToggle() {
 
 Every storage instance exposes the same small API:
 
-- `get(key)`
-- `set(key, value)`
-- `update(key, updater, options?)`
+- `get(key | keys)`
 - `getAll()`
+- `set(key, value)` or `set(values)`
+- `update(key | keys, updater, options?)`
 - `remove(key | keys, options?)`
 - `clear(options?)`
 - `watch(callback | handlers)`
+- `subscribe(callback)`
 
 ## Custom locking
 
@@ -339,3 +606,6 @@ const storage = new Storage<{count?: number}>({
 - Built for browser extensions where `chrome.storage` is available
 - `SecureStorage` requires Web Crypto API support
 - `chrome.storage` quotas still apply, especially for `sync`
+- the object form of `set()` uses at most one native write operation, but total,
+  per-item, and item-count quotas are unchanged; a mixed batch `update()`
+  set-and-delete patch uses two native write operations

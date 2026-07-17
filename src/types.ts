@@ -1,5 +1,9 @@
 export type StorageState = Record<string, any>;
 
+export type StorageSetValue<T> = T & (NonNullable<unknown> | null);
+
+export type StorageListenerResult = void | Promise<void>;
+
 export interface StorageLockOptions {
     /**
      * Cancels lock acquisition while the request is still queued.
@@ -32,21 +36,43 @@ export interface StorageUpdateOptions<T> extends StorageLockOptions {
     compare?: StorageUpdateComparer<T>;
 }
 
+export type StorageBatchUpdater<T extends StorageState, K extends keyof T> = (
+    prev: Partial<Pick<T, K>>
+) => Partial<Pick<T, K>> | Promise<Partial<Pick<T, K>>>;
+
+export interface StorageBatchUpdateOptions<T extends StorageState, K extends keyof T> extends StorageLockOptions {
+    /**
+     * Per-key equality checks. Return `true` to skip the physical write for that key.
+     */
+    compare?: Partial<{[P in K]: StorageUpdateComparer<T[P]>}>;
+}
+
 export type StorageWatchCallback<T> = <K extends keyof T>(
     newValue: T[K] | undefined,
     oldValue: T[K] | undefined,
     key: K
-) => void;
+) => StorageListenerResult;
 
 export type StorageWatchKeyCallback<T> = {
-    [K in keyof T]?: (newValue: T[K] | undefined, oldValue: T[K] | undefined) => void;
+    [K in keyof T]?: (newValue: T[K] | undefined, oldValue: T[K] | undefined) => StorageListenerResult;
 };
 
 export type StorageWatchOptions<T> = StorageWatchKeyCallback<T> | StorageWatchCallback<T>;
 
+export type StorageChanges<T extends StorageState> = Partial<{
+    [K in keyof T]: {
+        newValue: T[K] | undefined;
+        oldValue: T[K] | undefined;
+    };
+}>;
+
+export type StorageSubscriber<T extends StorageState> = (changes: StorageChanges<T>) => StorageListenerResult;
+
 // prettier-ignore
 export interface StorageProvider<T extends StorageState> {
-    set<K extends keyof T>(key: K, value: T[K]): Promise<void>;
+    set<K extends keyof T>(key: K, value: StorageSetValue<T[K]>): Promise<void>;
+
+    set(values: Partial<T>): Promise<void>;
 
     update<K extends keyof T>(
         key: K,
@@ -54,7 +80,15 @@ export interface StorageProvider<T extends StorageState> {
         options?: StorageUpdateOptions<T[K]>
     ): Promise<T[K] | undefined>;
 
+    update<K extends keyof T>(
+        keys: readonly K[],
+        updater: StorageBatchUpdater<T, K>,
+        options?: StorageBatchUpdateOptions<T, K>
+    ): Promise<Partial<Pick<T, K>>>;
+
     get<K extends keyof T>(key: K): Promise<T[K] | undefined>;
+
+    get<K extends keyof T>(keys: readonly K[]): Promise<Partial<Pick<T, K>>>;
 
     getAll(): Promise<Partial<T>>;
 
@@ -63,4 +97,6 @@ export interface StorageProvider<T extends StorageState> {
     clear(options?: StorageLockOptions): Promise<void>;
 
     watch(options: StorageWatchOptions<T>): () => void;
+
+    subscribe(callback: StorageSubscriber<T>): () => void;
 }
