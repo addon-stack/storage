@@ -20,15 +20,17 @@ export interface SecureStorageOptions extends StorageOptions {
 type SecureStorageFactoryOptions = SecureStorageOptions & {key?: string};
 type SecureStorageAreaOptions = Omit<SecureStorageFactoryOptions, "area">;
 
-export default class SecureStorage<T extends StorageState> extends AbstractStorage<T> {
+export default class SecureStorage<T extends StorageState = StorageState> extends AbstractStorage<T> {
     private readonly secureKey: string;
 
     private cryptoKey: CryptoKey | null = null;
     private cryptoKeyPromise: Promise<CryptoKey> | null = null;
 
-    public static override make<S extends StorageState>(options?: SecureStorageFactoryOptions): StorageProvider<S>;
+    public static override make<S extends StorageState = StorageState>(
+        options?: SecureStorageFactoryOptions
+    ): StorageProvider<S>;
     public static override make<
-        S extends StorageState,
+        S extends StorageState = StorageState,
         O extends StorageOptions = StorageOptions,
         C extends new (
             options?: O
@@ -41,9 +43,11 @@ export default class SecureStorage<T extends StorageState> extends AbstractStora
         return super.make(options);
     }
 
-    public static override Local<S extends StorageState>(options?: SecureStorageAreaOptions): StorageProvider<S>;
+    public static override Local<S extends StorageState = StorageState>(
+        options?: SecureStorageAreaOptions
+    ): StorageProvider<S>;
     public static override Local<
-        S extends StorageState,
+        S extends StorageState = StorageState,
         O extends StorageOptions = StorageOptions,
         C extends new (
             options?: O
@@ -56,9 +60,11 @@ export default class SecureStorage<T extends StorageState> extends AbstractStora
         return this.make({...options, area: "local"});
     }
 
-    public static override Session<S extends StorageState>(options?: SecureStorageAreaOptions): StorageProvider<S>;
+    public static override Session<S extends StorageState = StorageState>(
+        options?: SecureStorageAreaOptions
+    ): StorageProvider<S>;
     public static override Session<
-        S extends StorageState,
+        S extends StorageState = StorageState,
         O extends StorageOptions = StorageOptions,
         C extends new (
             options?: O
@@ -71,9 +77,11 @@ export default class SecureStorage<T extends StorageState> extends AbstractStora
         return this.make({...options, area: "session"});
     }
 
-    public static override Sync<S extends StorageState>(options?: SecureStorageAreaOptions): StorageProvider<S>;
+    public static override Sync<S extends StorageState = StorageState>(
+        options?: SecureStorageAreaOptions
+    ): StorageProvider<S>;
     public static override Sync<
-        S extends StorageState,
+        S extends StorageState = StorageState,
         O extends StorageOptions = StorageOptions,
         C extends new (
             options?: O
@@ -86,9 +94,11 @@ export default class SecureStorage<T extends StorageState> extends AbstractStora
         return this.make({...options, area: "sync"});
     }
 
-    public static override Managed<S extends StorageState>(options?: SecureStorageAreaOptions): StorageProvider<S>;
+    public static override Managed<S extends StorageState = StorageState>(
+        options?: SecureStorageAreaOptions
+    ): StorageProvider<S>;
     public static override Managed<
-        S extends StorageState,
+        S extends StorageState = StorageState,
         O extends StorageOptions = StorageOptions,
         C extends new (
             options?: O

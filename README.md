@@ -23,6 +23,7 @@ storage, and React bindings.
 ## Features
 
 - Typed single-key and batch overloads for `get`, `set`, and `update`
+- Optional state contracts for both quick experimentation and strict typing
 - Lock-coordinated `update()` for race-safe single-key and batch writes
 - Per-key and per-event subscriptions through `watch()` and `subscribe()`
 - `local`, `session`, `sync`, and `managed` storage areas
@@ -68,6 +69,29 @@ await storage.set("theme", "dark");
 const token = await storage.get("token");
 const all = await storage.getAll();
 ```
+
+## Start without a state contract
+
+A state interface is optional. Omit the generic when experimenting or when the
+stored shape is intentionally dynamic:
+
+```ts
+import {Storage} from "@addon-core/storage";
+
+const storage = Storage.Local({namespace: "playground"});
+
+await storage.set("theme", "dark");
+await storage.set("attempts", 3);
+await storage.set("profile", {name: "Ada"});
+
+const theme = await storage.get("theme"); // any
+```
+
+This is a deliberately loose TypeScript mode: keys and values are not tied to a
+compile-time schema. It does not relax the package's runtime validation—top-level
+`undefined` is still rejected, invalid keys still throw, and the browser's
+serialization rules still apply. Add a state interface when the shape becomes
+stable and key/value mistakes should be caught by TypeScript.
 
 ## Typed storage without boilerplate
 

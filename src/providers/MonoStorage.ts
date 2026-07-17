@@ -36,7 +36,9 @@ import type {
  */
 const isUnchangedBucket = (previousBucket: unknown, nextBucket: unknown): boolean => previousBucket === nextBucket;
 
-export default class MonoStorage<T extends StorageState, K extends string> implements StorageProvider<T> {
+export default class MonoStorage<T extends StorageState = StorageState, K extends string = string>
+    implements StorageProvider<T>
+{
     constructor(
         public readonly key: K,
         protected readonly storage: StorageProvider<Record<K, Partial<T>>>

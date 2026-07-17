@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import Storage from "../../providers/Storage";
 import type {StorageProvider, StorageWatchOptions} from "../../types";
 
-export type UseStorageProvider = Pick<StorageProvider<Record<string, any>>, "get" | "set" | "remove" | "watch">;
+export type UseStorageProvider = Pick<StorageProvider, "get" | "set" | "remove" | "watch">;
 
 export interface UseStorageOptions<T> {
     key: string;
@@ -30,7 +30,7 @@ function useStorage<T = any>(arg1: string | UseStorageOptions<T>, arg2?: T): Use
     const storageRef = useRef<UseStorageProvider | null>(null);
 
     if (storageRef.current === null) {
-        storageRef.current = options?.storage ?? Storage.Local<Record<string, any>>();
+        storageRef.current = options?.storage ?? Storage.Local();
     }
 
     const storage = storageRef.current;

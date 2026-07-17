@@ -59,7 +59,7 @@ export type FactoryOptions<T> = WithKey<CtorOptions<T>>;
 
 export type AreaOptions<T> = OmitUndef<FactoryOptions<T>, "area">;
 
-export type StaticMake<S extends StorageState, O extends StorageOptions> = <
+export type StaticMake<S extends StorageState = StorageState, O extends StorageOptions = StorageOptions> = <
     T extends new (
         options?: O
     ) => StorageProvider<S>,
@@ -68,7 +68,7 @@ export type StaticMake<S extends StorageState, O extends StorageOptions> = <
     options?: FactoryOptions<T>
 ) => StorageProvider<S>;
 
-export default abstract class AbstractStorage<T extends StorageState> implements StorageProvider<T> {
+export default abstract class AbstractStorage<T extends StorageState = StorageState> implements StorageProvider<T> {
     private storage: StorageArea;
     private readonly area: AreaName;
     protected readonly locker: StorageLocker;
@@ -81,7 +81,7 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     protected abstract decodeFullKey(fullKey: string): keyof T | null;
 
     public static make<
-        S extends StorageState,
+        S extends StorageState = StorageState,
         O extends StorageOptions = StorageOptions,
         T extends new (
             options?: O
@@ -105,7 +105,7 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     }
 
     public static Local<
-        S extends StorageState,
+        S extends StorageState = StorageState,
         O extends StorageOptions = StorageOptions,
         T extends new (
             options?: O
@@ -120,7 +120,7 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     }
 
     public static Session<
-        S extends StorageState,
+        S extends StorageState = StorageState,
         O extends StorageOptions = StorageOptions,
         T extends new (
             options?: O
@@ -135,7 +135,7 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     }
 
     public static Sync<
-        S extends StorageState,
+        S extends StorageState = StorageState,
         O extends StorageOptions = StorageOptions,
         T extends new (
             options?: O
@@ -150,7 +150,7 @@ export default abstract class AbstractStorage<T extends StorageState> implements
     }
 
     public static Managed<
-        S extends StorageState,
+        S extends StorageState = StorageState,
         O extends StorageOptions = StorageOptions,
         T extends new (
             options?: O

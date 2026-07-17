@@ -15,7 +15,7 @@ export class StorageCorruptionError extends Error {
     }
 }
 
-export class StoragePartialUpdateError<T extends StorageState> extends Error {
+export class StoragePartialUpdateError<T extends StorageState = StorageState> extends Error {
     public readonly appliedSetKeys: readonly (keyof T)[];
     public readonly attemptedRemoveKeys: readonly (keyof T)[];
     public readonly cause: unknown;

@@ -36,40 +36,43 @@ export interface StorageUpdateOptions<T> extends StorageLockOptions {
     compare?: StorageUpdateComparer<T>;
 }
 
-export type StorageBatchUpdater<T extends StorageState, K extends keyof T> = (
+export type StorageBatchUpdater<T extends StorageState = StorageState, K extends keyof T = keyof T> = (
     prev: Partial<Pick<T, K>>
 ) => Partial<Pick<T, K>> | Promise<Partial<Pick<T, K>>>;
 
-export interface StorageBatchUpdateOptions<T extends StorageState, K extends keyof T> extends StorageLockOptions {
+export interface StorageBatchUpdateOptions<T extends StorageState = StorageState, K extends keyof T = keyof T>
+    extends StorageLockOptions {
     /**
-     * Per-key equality checks. Return `true` to skip the physical write for that key.
+     * Per-key equality checks. Return `true` to skip the physical writing for that key.
      */
     compare?: Partial<{[P in K]: StorageUpdateComparer<T[P]>}>;
 }
 
-export type StorageWatchCallback<T> = <K extends keyof T>(
+export type StorageWatchCallback<T = StorageState> = <K extends keyof T>(
     newValue: T[K] | undefined,
     oldValue: T[K] | undefined,
     key: K
 ) => StorageListenerResult;
 
-export type StorageWatchKeyCallback<T> = {
+export type StorageWatchKeyCallback<T = StorageState> = {
     [K in keyof T]?: (newValue: T[K] | undefined, oldValue: T[K] | undefined) => StorageListenerResult;
 };
 
-export type StorageWatchOptions<T> = StorageWatchKeyCallback<T> | StorageWatchCallback<T>;
+export type StorageWatchOptions<T = StorageState> = StorageWatchKeyCallback<T> | StorageWatchCallback<T>;
 
-export type StorageChanges<T extends StorageState> = Partial<{
+export type StorageChanges<T extends StorageState = StorageState> = Partial<{
     [K in keyof T]: {
         newValue: T[K] | undefined;
         oldValue: T[K] | undefined;
     };
 }>;
 
-export type StorageSubscriber<T extends StorageState> = (changes: StorageChanges<T>) => StorageListenerResult;
+export type StorageSubscriber<T extends StorageState = StorageState> = (
+    changes: StorageChanges<T>
+) => StorageListenerResult;
 
 // prettier-ignore
-export interface StorageProvider<T extends StorageState> {
+export interface StorageProvider<T extends StorageState = StorageState> {
     set<K extends keyof T>(key: K, value: StorageSetValue<T[K]>): Promise<void>;
 
     set(values: Partial<T>): Promise<void>;
