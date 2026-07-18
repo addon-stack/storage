@@ -1,7 +1,7 @@
 import MonoStorage from "./MonoStorage";
 import Storage from "./Storage";
 import {StoragePartialUpdateError} from "../errors";
-import type {StorageBatchUpdateOptions, StorageLocker} from "../types";
+import type {StorageLocker} from "../types";
 import {captureUnhandledErrors, flushMacrotask} from "../../tests/helpers/async";
 
 const hasArea = (name: keyof typeof chrome.storage) => {
@@ -258,10 +258,11 @@ describe("update method - no-op writes", () => {
         const setSpy = chrome.storage.local.set as jest.Mock;
         setSpy.mockClear();
 
-        await storage.update("settings", () => ({theme: "dark"}), {
+        const result = await storage.update("settings", () => ({theme: "dark"}), {
             compare: () => true,
         });
 
+        expect(result).toEqual({theme: "light"});
         expect(setSpy).not.toHaveBeenCalled();
         expect(await storage.get("settings")).toEqual({theme: "light"});
     });
@@ -415,11 +416,18 @@ describe("batch overloads", () => {
 
     test("missing prototype-like keys stay absent and batch updater snapshots do not inherit them", async () => {
         const isolatedStorage = new Storage<PrototypeNamedState>();
-        const compare = jest.fn(() => false);
-        const compareMap = Object.create(null) as NonNullable<
-            StorageBatchUpdateOptions<PrototypeNamedState, keyof PrototypeNamedState>["compare"]
-        >;
-        compareMap.toString = compare;
+        const compare = jest.fn((prev: Partial<PrototypeNamedState>, next: Partial<PrototypeNamedState>) => {
+            expect(Object.getPrototypeOf(prev)).toBeNull();
+            expect(Object.getPrototypeOf(next)).toBeNull();
+            expect(prev.constructor).toBeUndefined();
+            expect(prev.toString).toBeUndefined();
+            expect(prev.valueOf).toBeUndefined();
+            expect(next.constructor).toBeUndefined();
+            expect(next.toString).toBe("stored");
+            expect(next.valueOf).toBeUndefined();
+
+            return false;
+        });
 
         await expect(isolatedStorage.get("toString")).resolves.toBeUndefined();
 
@@ -439,10 +447,10 @@ describe("batch overloads", () => {
 
                 return patch;
             },
-            {compare: compareMap}
+            {compare}
         );
 
-        expect(compare).toHaveBeenCalledWith(undefined, "stored");
+        expect(compare).toHaveBeenCalledTimes(1);
         await expect(isolatedStorage.get("toString")).resolves.toBe("stored");
     });
 
@@ -514,29 +522,6 @@ describe("batch overloads", () => {
         } satisfies Partial<StoragePartialUpdateError<BatchState>>);
 
         await expect(isolatedStorage.get(["a", "b"] as const)).resolves.toEqual({a: 1, b: 3});
-    });
-
-    test("batch comparer maps ignore inherited prototype functions", async () => {
-        interface NamedKeys {
-            constructor?: string;
-            toString?: string;
-            valueOf?: string;
-        }
-
-        const isolatedStorage = new Storage<NamedKeys>();
-        await isolatedStorage.set({constructor: "old", toString: "old", valueOf: "old"});
-
-        await isolatedStorage.update(
-            ["constructor", "toString", "valueOf"] as const,
-            () => ({constructor: "new", toString: "new", valueOf: "new"}),
-            {compare: {}}
-        );
-
-        await expect(isolatedStorage.getAll()).resolves.toEqual({
-            constructor: "new",
-            toString: "new",
-            valueOf: "new",
-        });
     });
 
     test("batch update rejects patch keys outside the requested set without writing", async () => {
@@ -617,26 +602,70 @@ describe("batch overloads", () => {
         expect(removeSpy).not.toHaveBeenCalled();
     });
 
-    test("batch update applies per-key comparers", async () => {
+    test("aggregate comparer can skip the whole mixed patch and returns the stored snapshot", async () => {
         const isolatedStorage = new Storage<BatchState>();
         await isolatedStorage.set({a: 1, b: 2});
 
-        const compareA = jest.fn(() => true);
-        const compareB = jest.fn(() => false);
+        const compare = jest.fn(() => true);
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        const removeSpy = chrome.storage.local.remove as jest.Mock;
+        setSpy.mockClear();
+        removeSpy.mockClear();
+
+        const result = await isolatedStorage.update(
+            ["a", "b"] as const,
+            () => ({a: undefined, b: 3}),
+            {compare}
+        );
+
+        expect(compare).toHaveBeenCalledTimes(1);
+        expect(compare).toHaveBeenCalledWith({a: 1, b: 2}, {b: 3});
+        expect(result).toEqual({a: 1, b: 2});
+        expect(setSpy).not.toHaveBeenCalled();
+        expect(removeSpy).not.toHaveBeenCalled();
+    });
+
+    test("aggregate comparer can force every explicit value to be written", async () => {
+        const isolatedStorage = new Storage<BatchState>();
+        await isolatedStorage.set({a: 1, b: 2});
+
+        const compare = jest.fn(() => false);
         const setSpy = chrome.storage.local.set as jest.Mock;
         setSpy.mockClear();
 
         const result = await isolatedStorage.update(
             ["a", "b"] as const,
-            () => ({a: 2, b: 2}),
-            {compare: {a: compareA, b: compareB}}
+            () => ({a: 1, b: 3}),
+            {compare}
         );
 
-        expect(compareA).toHaveBeenCalledWith(1, 2);
-        expect(compareB).toHaveBeenCalledWith(2, 2);
-        expect(result).toEqual({a: 1, b: 2});
+        expect(compare).toHaveBeenCalledTimes(1);
+        expect(compare).toHaveBeenCalledWith({a: 1, b: 2}, {a: 1, b: 3});
+        expect(result).toEqual({a: 1, b: 3});
         expect(setSpy).toHaveBeenCalledTimes(1);
-        expect(setSpy).toHaveBeenCalledWith({b: 2}, expect.any(Function));
+        expect(setSpy).toHaveBeenCalledWith({a: 1, b: 3}, expect.any(Function));
+    });
+
+    test("aggregate comparer errors before any native write", async () => {
+        const isolatedStorage = new Storage<BatchState>();
+        await isolatedStorage.set({a: 1, b: 2});
+
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        const removeSpy = chrome.storage.local.remove as jest.Mock;
+        setSpy.mockClear();
+        removeSpy.mockClear();
+
+        await expect(
+            isolatedStorage.update(["a", "b"] as const, () => ({a: undefined, b: 3}), {
+                compare: () => {
+                    throw new Error("compare failed");
+                },
+            })
+        ).rejects.toThrow("compare failed");
+
+        expect(setSpy).not.toHaveBeenCalled();
+        expect(removeSpy).not.toHaveBeenCalled();
+        await expect(isolatedStorage.get(["a", "b"] as const)).resolves.toEqual({a: 1, b: 2});
     });
 
     test("batch update deduplicates and sorts lock keys while forwarding lock options", async () => {
@@ -732,6 +761,7 @@ describe("batch overloads", () => {
     test("empty batch operations do not call native storage", async () => {
         const isolatedStorage = new Storage<BatchState>();
         const updater = jest.fn(() => ({}));
+        const compare = jest.fn(() => false);
         const getSpy = chrome.storage.local.get as jest.Mock;
         const setSpy = chrome.storage.local.set as jest.Mock;
         const removeSpy = chrome.storage.local.remove as jest.Mock;
@@ -741,9 +771,10 @@ describe("batch overloads", () => {
 
         await expect(isolatedStorage.get([])).resolves.toEqual({});
         await expect(isolatedStorage.set({})).resolves.toBeUndefined();
-        await expect(isolatedStorage.update([], updater)).resolves.toEqual({});
+        await expect(isolatedStorage.update([], updater, {compare})).resolves.toEqual({});
 
         expect(updater).not.toHaveBeenCalled();
+        expect(compare).not.toHaveBeenCalled();
         expect(getSpy).not.toHaveBeenCalled();
         expect(setSpy).not.toHaveBeenCalled();
         expect(removeSpy).not.toHaveBeenCalled();

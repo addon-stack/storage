@@ -1,6 +1,6 @@
 import {dequal as defaultCompare} from "dequal/lite";
-import {copyRecord, createRecord, hasOwn, isPlainObject, setRecordValue} from "./utils";
-import type {StorageBatchUpdateOptions, StorageState} from "./types";
+import {copyRecord, copyRecordWithoutPrototype, createRecord, hasOwn, isPlainObject, setRecordValue} from "./utils";
+import type {StorageBatchUpdateComparer, StorageState} from "./types";
 
 export interface StorageBatchPlan<T extends StorageState, K extends keyof T> {
     next: Partial<Pick<T, K>>;
@@ -12,7 +12,7 @@ export const planBatchUpdate = <T extends StorageState, K extends keyof T>(
     uniqueKeys: readonly K[],
     previous: Partial<Pick<T, K>>,
     patch: Partial<Pick<T, K>>,
-    compare?: StorageBatchUpdateOptions<T, K>["compare"]
+    compare?: StorageBatchUpdateComparer<T, K>
 ): StorageBatchPlan<T, K> => {
     if (!isPlainObject(patch)) {
         throw new TypeError("Storage batch updater must return an object patch.");
@@ -48,14 +48,20 @@ export const planBatchUpdate = <T extends StorageState, K extends keyof T>(
             continue;
         }
 
-        const compareValue = compare && hasOwn(compare, key) ? compare[key] : undefined;
-
-        if ((compareValue ?? defaultCompare)(previousValue, nextValue)) {
+        if (!compare && defaultCompare(previousValue, nextValue)) {
             continue;
         }
 
         setRecordValue(valuesToSet, key, nextValue);
         setRecordValue(next, key, nextValue);
+    }
+
+    if (compare?.(copyRecordWithoutPrototype(previous), copyRecordWithoutPrototype(next))) {
+        return {
+            next: copyRecord(previous),
+            valuesToSet: createRecord<Partial<Pick<T, K>>>(),
+            keysToRemove: [],
+        };
     }
 
     return {next, valuesToSet, keysToRemove};

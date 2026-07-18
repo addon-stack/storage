@@ -32,7 +32,7 @@ import type {
  * Bucket updaters return the received `bucketValue` when nothing changed and a
  * freshly built bucket otherwise, so reference identity — not deep equality —
  * decides whether the underlying provider writes. This is what lets a custom
- * per-field comparer force a physically identical write.
+ * comparer force a physically identical write.
  */
 const isUnchangedBucket = (previousBucket: unknown, nextBucket: unknown): boolean => previousBucket === nextBucket;
 
@@ -189,9 +189,9 @@ export default class MonoStorage<T extends StorageState = StorageState, K extend
                 const previousValue = hasOwn(bucket, key) ? (bucket[key] as T[KP]) : undefined;
                 const nextValue = await updater(previousValue);
 
-                result = nextValue;
-
                 if (nextValue === undefined) {
+                    result = undefined;
+
                     if (!hasOwn(bucket, key)) {
                         return bucketValue;
                     }
@@ -203,9 +203,11 @@ export default class MonoStorage<T extends StorageState = StorageState, K extend
                 }
 
                 if (compareValue(previousValue, nextValue)) {
+                    result = previousValue;
                     return bucketValue;
                 }
 
+                result = nextValue;
                 const nextBucket = copyRecord(bucket);
                 setRecordValue(nextBucket, key, nextValue);
 

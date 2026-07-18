@@ -206,27 +206,46 @@ describe("batch overloads", () => {
         expect(removeSpy).toHaveBeenCalledWith("bucket", expect.any(Function));
     });
 
-    test("batch update applies per-key comparers before deciding whether to write the bucket", async () => {
+    test("aggregate comparer can force all explicit values into one physical bucket write", async () => {
         const underlying = new Storage<Record<typeof key, Partial<BucketState>>>();
         const mono = new MonoStorage<BucketState, typeof key>(key, underlying);
         await mono.set({a: 1, b: 2});
 
-        const compareA = jest.fn(() => true);
-        const compareB = jest.fn(() => false);
+        const compare = jest.fn(() => false);
         const setSpy = chrome.storage.local.set as jest.Mock;
         setSpy.mockClear();
 
         const result = await mono.update(
             ["a", "b"] as const,
-            () => ({a: 2, b: 2}),
-            {compare: {a: compareA, b: compareB}}
+            () => ({a: 1, b: 3}),
+            {compare}
         );
 
-        expect(compareA).toHaveBeenCalledWith(1, 2);
-        expect(compareB).toHaveBeenCalledWith(2, 2);
-        expect(result).toEqual({a: 1, b: 2});
+        expect(compare).toHaveBeenCalledTimes(1);
+        expect(compare).toHaveBeenCalledWith({a: 1, b: 2}, {a: 1, b: 3});
+        expect(result).toEqual({a: 1, b: 3});
         expect(setSpy).toHaveBeenCalledTimes(1);
-        expect(setSpy).toHaveBeenCalledWith({bucket: {a: 1, b: 2}}, expect.any(Function));
+        expect(setSpy).toHaveBeenCalledWith({bucket: {a: 1, b: 3}}, expect.any(Function));
+    });
+
+    test("aggregate comparer can skip the whole logical patch without writing the bucket", async () => {
+        const underlying = new Storage<Record<typeof key, Partial<BucketState>>>();
+        const mono = new MonoStorage<BucketState, typeof key>(key, underlying);
+        await mono.set({a: 1, b: 2});
+
+        const compare = jest.fn(() => true);
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        setSpy.mockClear();
+
+        const result = await mono.update(
+            ["a", "b"] as const,
+            () => ({a: undefined, b: 3}),
+            {compare}
+        );
+
+        expect(compare).toHaveBeenCalledWith({a: 1, b: 2}, {b: 3});
+        expect(result).toEqual({a: 1, b: 2});
+        expect(setSpy).not.toHaveBeenCalled();
     });
 
     test("batch update rejects unrequested keys without changing the bucket", async () => {
@@ -252,6 +271,7 @@ describe("batch overloads", () => {
         const underlying = new Storage<Record<typeof key, Partial<BucketState>>>();
         const mono = new MonoStorage<BucketState, typeof key>(key, underlying);
         const updater = jest.fn(() => ({}));
+        const compare = jest.fn(() => false);
         const getSpy = chrome.storage.local.get as jest.Mock;
         const setSpy = chrome.storage.local.set as jest.Mock;
         const removeSpy = chrome.storage.local.remove as jest.Mock;
@@ -261,10 +281,11 @@ describe("batch overloads", () => {
 
         await expect(mono.get([])).resolves.toEqual({});
         await expect(mono.set({})).resolves.toBeUndefined();
-        await expect(mono.update([], updater)).resolves.toEqual({});
+        await expect(mono.update([], updater, {compare})).resolves.toEqual({});
         await expect(mono.remove([])).resolves.toBeUndefined();
 
         expect(updater).not.toHaveBeenCalled();
+        expect(compare).not.toHaveBeenCalled();
         expect(getSpy).not.toHaveBeenCalled();
         expect(setSpy).not.toHaveBeenCalled();
         expect(removeSpy).not.toHaveBeenCalled();
@@ -312,6 +333,19 @@ describe("batch overloads", () => {
         await mono.update("b", previous => ({...(previous as {x: number})}), {compare: () => false});
 
         expect(setSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("single update comparer returns the stored value when it skips a write", async () => {
+        const mono = new MonoStorage<BucketState, typeof key>(key, base);
+        await mono.set("a", 1);
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        setSpy.mockClear();
+
+        const result = await mono.update("a", () => 2, {compare: () => true});
+
+        expect(result).toBe(1);
+        expect(setSpy).not.toHaveBeenCalled();
+        await expect(mono.get("a")).resolves.toBe(1);
     });
 });
 

@@ -16,6 +16,8 @@ export type {
 } from "./helpers";
 export type {SecureStorageOptions, StorageOptions} from "./providers";
 export type {
+    StorageBatchSnapshot,
+    StorageBatchUpdateComparer,
     StorageBatchUpdateOptions,
     StorageBatchUpdater,
     StorageChanges,

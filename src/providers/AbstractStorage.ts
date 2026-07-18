@@ -246,7 +246,7 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
                 }
 
                 if (compare(prev, next)) {
-                    return next;
+                    return prev;
                 }
 
                 await this.setUnlocked(key, next);

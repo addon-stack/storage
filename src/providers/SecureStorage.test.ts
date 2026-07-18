@@ -418,6 +418,61 @@ describe("batch overloads", () => {
         expect(removeSpy).not.toHaveBeenCalled();
     });
 
+    test("aggregate comparer receives decrypted snapshots and can skip the whole patch", async () => {
+        const storage = new SecureStorage<SecureBatchState>({namespace: "auth"});
+        await storage.set({accessToken: "old", refreshToken: "remove", attempts: 1});
+
+        const compare = jest.fn(() => true);
+        const encryptSpy = crypto.subtle.encrypt as jest.Mock;
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        const removeSpy = chrome.storage.local.remove as jest.Mock;
+        encryptSpy.mockClear();
+        setSpy.mockClear();
+        removeSpy.mockClear();
+
+        const result = await storage.update(
+            ["accessToken", "refreshToken", "attempts"] as const,
+            () => ({accessToken: "new", refreshToken: undefined}),
+            {compare}
+        );
+
+        expect(compare).toHaveBeenCalledTimes(1);
+        expect(compare).toHaveBeenCalledWith(
+            {accessToken: "old", refreshToken: "remove", attempts: 1},
+            {accessToken: "new", attempts: 1}
+        );
+        expect(result).toEqual({accessToken: "old", refreshToken: "remove", attempts: 1});
+        expect(encryptSpy).not.toHaveBeenCalled();
+        expect(setSpy).not.toHaveBeenCalled();
+        expect(removeSpy).not.toHaveBeenCalled();
+    });
+
+    test("aggregate comparer can force every explicit value to be encrypted and written", async () => {
+        const storage = new SecureStorage<SecureBatchState>({namespace: "auth"});
+        await storage.set({accessToken: "same", attempts: 1});
+
+        const compare = jest.fn(() => false);
+        const encryptSpy = crypto.subtle.encrypt as jest.Mock;
+        const setSpy = chrome.storage.local.set as jest.Mock;
+        encryptSpy.mockClear();
+        setSpy.mockClear();
+
+        const result = await storage.update(
+            ["accessToken", "attempts"] as const,
+            () => ({accessToken: "same", attempts: 2}),
+            {compare}
+        );
+
+        expect(compare).toHaveBeenCalledWith(
+            {accessToken: "same", attempts: 1},
+            {accessToken: "same", attempts: 2}
+        );
+        expect(result).toEqual({accessToken: "same", attempts: 2});
+        expect(encryptSpy).toHaveBeenCalledTimes(2);
+        expect(setSpy).toHaveBeenCalledTimes(1);
+        expect(Object.keys(setSpy.mock.calls[0]?.[0])).toEqual(["secure:auth:accessToken", "secure:auth:attempts"]);
+    });
+
     test("batch update encrypts writes before removing deleted keys in a mixed patch", async () => {
         const storage = new SecureStorage<SecureBatchState>({namespace: "auth"});
         await storage.set({accessToken: "old", refreshToken: "remove"});

@@ -3,6 +3,8 @@ import {
     SecureStorage,
     Storage,
     StoragePartialUpdateError,
+    type StorageBatchSnapshot,
+    type StorageBatchUpdateComparer,
     type StorageBatchUpdateOptions,
     type StorageBatchUpdater,
     type StorageChanges,
@@ -59,6 +61,8 @@ declare const monoStorageTypeWithoutGeneric: MonoStorage;
 declare const changesTypeWithoutGeneric: StorageChanges;
 declare const subscriberTypeWithoutGeneric: StorageSubscriber;
 declare const watcherTypeWithoutGeneric: StorageWatchOptions;
+declare const batchSnapshotTypeWithoutGeneric: StorageBatchSnapshot;
+declare const batchComparerTypeWithoutGeneric: StorageBatchUpdateComparer;
 declare const batchUpdaterTypeWithoutGeneric: StorageBatchUpdater;
 declare const batchOptionsTypeWithoutGeneric: StorageBatchUpdateOptions;
 declare const partialUpdateErrorTypeWithoutGeneric: StoragePartialUpdateError;
@@ -70,6 +74,8 @@ void monoStorageTypeWithoutGeneric;
 void changesTypeWithoutGeneric;
 void subscriberTypeWithoutGeneric;
 void watcherTypeWithoutGeneric;
+void batchSnapshotTypeWithoutGeneric;
+void batchComparerTypeWithoutGeneric;
 void batchUpdaterTypeWithoutGeneric;
 void batchOptionsTypeWithoutGeneric;
 void partialUpdateErrorTypeWithoutGeneric;

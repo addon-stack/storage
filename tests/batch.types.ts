@@ -2,6 +2,8 @@ import type {
     MonoStorage,
     SecureStorage,
     Storage,
+    StorageBatchSnapshot,
+    StorageBatchUpdateComparer,
     StorageBatchUpdateOptions,
     StorageBatchUpdater,
     StorageChanges,
@@ -57,9 +59,18 @@ async function verifyOverloadTypes() {
             return {count: (prev.count ?? 0) + 1, enabled: prev.enabled ?? true};
         },
         {
-            compare: {
-                count: (prev, next) => prev === next,
-                enabled: (prev, next) => prev === next,
+            compare: (prev, next) => {
+                type BatchComparePrev = Expect<
+                    Equal<typeof prev, Readonly<Partial<Pick<TypedState, "count" | "enabled">>>>
+                >;
+                type BatchCompareNext = Expect<
+                    Equal<typeof next, Readonly<Partial<Pick<TypedState, "count" | "enabled">>>>
+                >;
+
+                // @ts-expect-error aggregate comparer snapshots are readonly
+                prev.count = 1;
+
+                return prev.count === next.count && prev.enabled === next.enabled;
             },
         }
     );
@@ -96,12 +107,28 @@ async function verifyOverloadTypes() {
     const batchUpdater: StorageBatchUpdater<TypedState, "count" | "enabled"> = prev => ({
         count: prev.count,
     });
+    type BatchSnapshot = Expect<
+        Equal<
+            StorageBatchSnapshot<TypedState, "count" | "enabled">,
+            Readonly<Partial<Pick<TypedState, "count" | "enabled">>>
+        >
+    >;
+    const batchComparer: StorageBatchUpdateComparer<TypedState, "count" | "enabled"> = (prev, next) =>
+        prev.count === next.count && prev.enabled === next.enabled;
     const batchOptions: StorageBatchUpdateOptions<TypedState, "count" | "enabled"> = {
-        compare: {
-            count: (prev, next) => prev === next,
-        },
+        compare: batchComparer,
     };
     await storage.update(["count", "enabled"] as const, batchUpdater, batchOptions);
+
+    void (null as unknown as BatchSnapshot);
+
+    const invalidBatchOptions: StorageBatchUpdateOptions<TypedState, "count" | "enabled"> = {
+        compare: {
+            // @ts-expect-error batch compare is one aggregate function, not a per-key comparer map
+            count: (prev: number | undefined, next: number | undefined) => prev === next,
+        },
+    };
+    void invalidBatchOptions;
 
     // @ts-expect-error unknown single storage key
     await storage.get("unknown");

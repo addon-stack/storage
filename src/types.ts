@@ -40,12 +40,24 @@ export type StorageBatchUpdater<T extends StorageState = StorageState, K extends
     prev: Partial<Pick<T, K>>
 ) => Partial<Pick<T, K>> | Promise<Partial<Pick<T, K>>>;
 
+export type StorageBatchSnapshot<T extends StorageState = StorageState, K extends keyof T = keyof T> = Readonly<
+    Partial<Pick<T, K>>
+>;
+
+/**
+ * Equality check for a batch `update()`. Return `true` to treat the selected snapshot as equal and skip the update.
+ */
+export type StorageBatchUpdateComparer<T extends StorageState = StorageState, K extends keyof T = keyof T> = (
+    prev: StorageBatchSnapshot<T, K>,
+    next: StorageBatchSnapshot<T, K>
+) => boolean;
+
 export interface StorageBatchUpdateOptions<T extends StorageState = StorageState, K extends keyof T = keyof T>
     extends StorageLockOptions {
     /**
-     * Per-key equality checks. Return `true` to skip the physical writing for that key.
+     * Equality check for the selected snapshot. Return `true` to skip the batch update.
      */
-    compare?: Partial<{[P in K]: StorageUpdateComparer<T[P]>}>;
+    compare?: StorageBatchUpdateComparer<T, K>;
 }
 
 export type StorageWatchCallback<T = StorageState> = <K extends keyof T>(

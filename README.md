@@ -275,12 +275,13 @@ key. Returning a key that was not included in the key list throws before any
 write is made. The returned object is the final snapshot of the selected keys;
 removed keys are omitted.
 
-Lock acquisition and equality checks can be configured for the whole batch:
+Lock acquisition and one aggregate equality check can be configured for the
+whole batch:
 
 ```ts
 const controller = new AbortController();
 
-await settings.update(
+const result = await settings.update(
     ["theme", "language"] as const,
     prev => ({
         theme: "dark",
@@ -289,17 +290,29 @@ await settings.update(
     {
         signal: controller.signal,
         timeout: 500,
-        compare: {
-            theme: (prev, next) => prev === next,
-        },
+        compare: (prev, next) =>
+            prev.theme === next.theme &&
+            (prev.language ?? "en") === (next.language ?? "en"),
     }
 );
 ```
 
-Keys use deep equality by default, just like `update()`. A key-specific
-`compare` function returns `true` to treat that logical key as unchanged. For
-`MonoStorage`, another changed key may still cause the shared bucket to be
-written.
+The batch comparer receives two complete snapshots of the selected keys. The
+first is the stored snapshot passed to the updater. The second is the proposed
+snapshot after merging the updater's patch: omitted keys stay unchanged and own
+properties set to `undefined` are removed.
+
+Returning `true` skips the whole batch. Nothing is written or removed, and
+`update()` resolves to the previous stored snapshot. Returning `false` applies
+the complete explicit patch, including defined values that are deeply equal to
+their stored values, and resolves to the resulting snapshot. The comparer makes
+one decision for the batch; it is not a per-key filter. Select which keys to
+change by including only those keys in the updater's patch.
+
+Without a custom batch comparer, each explicit patch value uses deep equality.
+Only changed values are written, only existing keys requested for deletion are
+removed, and equal or omitted keys cause no native write. This default keeps the
+physical update minimal.
 
 The `timeout` applies to each selected lock acquisition, not as one deadline
 for the whole batch. Direct `set()` calls and raw native storage writes do not
@@ -365,8 +378,10 @@ await storage.update(
 
 ### Custom compare
 
-`update()` skips writes when the returned value is equal to the previous value.
-Pass `compare` when a specific update needs custom equality rules.
+`update()` skips writes when the value returned by the updater is equal to the
+stored value. Pass `compare` when a specific update needs custom equality rules.
+The comparer receives the stored previous value and the next value produced by
+the updater.
 
 ```ts
 await storage.update(
@@ -378,11 +393,13 @@ await storage.update(
 );
 ```
 
-If `compare` returns `true`, the values are treated as equal and no write is made.
-This also means no `watch()` callbacks are triggered for that update. Use
-`compare: () => false` when you need to force a physical write. It cannot force
-a logical notification: `storage.onChanged` contains no provenance for the
-write, and equal logical values are filtered by observers.
+If `compare` returns `true`, no write is made and `update()` resolves to the
+previous stored value, not the value proposed by the updater. This also means no
+`watch()` callbacks are triggered for that update. If it returns `false`, the
+next value is written and returned. Use `compare: () => false` when you need to
+force a physical write. It cannot force a logical notification:
+`storage.onChanged` contains no provenance for the write, and equal logical
+values are filtered by observers.
 
 ### Important note
 
