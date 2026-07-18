@@ -1,21 +1,35 @@
-import type {StorageProvider, StorageState} from "../src";
+export {};
 
 declare global {
-    var storageLocalGet: (key: string | string[], storage?: StorageProvider<StorageState>) => Promise<any>;
+    var resetStorageChangeListeners: () => void;
+
+    var storageLocalGet: (key: string | string[], storage?: object) => Promise<any>;
 
     var simulateStorageChange: (params: {
-        storage: StorageProvider<StorageState>;
+        storage: object;
         key: string;
         oldValue: any;
         newValue: any;
         areaName?: chrome.storage.AreaName;
     }) => void;
 
+    var simulateStorageChanges: (params: {
+        storage: object;
+        changes: Record<string, chrome.storage.StorageChange>;
+        areaName?: chrome.storage.AreaName;
+    }) => void;
+
     var simulateSecureStorageChange: (params: {
-        storage: StorageProvider<StorageState>;
+        storage: object;
         key: string;
         oldValue: any;
         newValue: any;
+        areaName?: chrome.storage.AreaName;
+    }) => Promise<void>;
+
+    var simulateSecureStorageChanges: (params: {
+        storage: object;
+        changes: Record<string, chrome.storage.StorageChange>;
         areaName?: chrome.storage.AreaName;
     }) => Promise<void>;
 }

@@ -1,11 +1,22 @@
 import "jest-webextension-mock";
 import {TextDecoder, TextEncoder} from "util";
-
-import type {StorageProvider, StorageState} from "../src";
+import {flushMacrotask} from "./helpers/async";
+import {createWebLocksMock} from "./helpers/webLocks";
 
 type Listener = (changes: Record<string, chrome.storage.StorageChange>, areaName: chrome.storage.AreaName) => void;
 
 const listeners = new Set<Listener>();
+
+const hasOwn = (value: object, key: PropertyKey): boolean => Object.getOwnPropertyDescriptor(value, key) !== undefined;
+
+const setRecordValue = (target: object, key: PropertyKey, value: unknown): void => {
+    Object.defineProperty(target, key, {
+        configurable: true,
+        enumerable: true,
+        value,
+        writable: true,
+    });
+};
 
 const createStorageArea = (): chrome.storage.StorageArea => {
     let data: Record<string, any> = {};
@@ -16,18 +27,21 @@ const createStorageArea = (): chrome.storage.StorageArea => {
         }
 
         if (typeof keys === "string") {
-            return {[keys]: data[keys]};
+            return hasOwn(data, keys) ? {[keys]: data[keys]} : {};
         }
 
         if (Array.isArray(keys)) {
             return keys.reduce<Record<string, any>>((acc, key) => {
-                acc[key] = data[key];
+                if (hasOwn(data, key)) {
+                    setRecordValue(acc, key, data[key]);
+                }
+
                 return acc;
             }, {});
         }
 
         return Object.entries(keys).reduce<Record<string, any>>((acc, [key, fallbackValue]) => {
-            acc[key] = key in data ? data[key] : fallbackValue;
+            setRecordValue(acc, key, hasOwn(data, key) ? data[key] : fallbackValue);
             return acc;
         }, {});
     };
@@ -62,7 +76,15 @@ const createStorageArea = (): chrome.storage.StorageArea => {
             return Promise.resolve(0);
         }) as unknown as chrome.storage.StorageArea["getBytesInUse"],
         set: jest.fn((items: Record<string, any>, callback?: () => void) => {
-            data = {...data, ...items};
+            const next = {...data};
+
+            for (const [key, value] of Object.entries(items)) {
+                if (value !== undefined) {
+                    setRecordValue(next, key, value);
+                }
+            }
+
+            data = next;
 
             if (callback) {
                 callback();
@@ -142,8 +164,12 @@ chrome.storage.onChanged.addListener = jest.fn(cb => listeners.add(cb));
 chrome.storage.onChanged.removeListener = jest.fn(cb => listeners.delete(cb));
 chrome.storage.onChanged.hasListener = jest.fn(cb => listeners.has(cb));
 
+global.resetStorageChangeListeners = () => {
+    listeners.clear();
+};
+
 interface StorageChange {
-    storage: StorageProvider<StorageState>;
+    storage: object;
     key: string;
     oldValue: any;
     newValue: any;
@@ -151,32 +177,57 @@ interface StorageChange {
 }
 
 global.simulateStorageChange = ({storage, key, oldValue, newValue, areaName = "local"}: StorageChange) => {
-    const fullKey = (storage as any)["getFullKey"](key);
+    global.simulateStorageChanges({
+        storage,
+        changes: {[key]: {oldValue, newValue}},
+        areaName,
+    });
+};
 
-    const changes = {[fullKey]: {oldValue, newValue}};
+global.simulateStorageChanges = ({storage, changes, areaName = "local"}) => {
+    const formattedChanges = Object.entries(changes).reduce<Record<string, chrome.storage.StorageChange>>(
+        (acc, [key, change]) => {
+            const fullKey = (storage as any)["getFullKey"](key);
+            setRecordValue(acc, fullKey, change);
 
-    listeners.forEach(listener => listener(changes, areaName));
+            return acc;
+        },
+        {}
+    );
+
+    listeners.forEach(listener => listener(formattedChanges, areaName));
 };
 
 global.simulateSecureStorageChange = async ({storage, key, oldValue, newValue, areaName}: StorageChange) => {
-    const encryptedOldValue = oldValue !== undefined ? await (storage as any)["encrypt"](oldValue) : undefined;
-    const encryptedNewValue = newValue !== undefined ? await (storage as any)["encrypt"](newValue) : undefined;
-
-    global.simulateStorageChange({
+    await global.simulateSecureStorageChanges({
         storage,
-        key,
-        oldValue: encryptedOldValue,
-        newValue: encryptedNewValue,
+        changes: {[key]: {oldValue, newValue}},
         areaName,
     });
+};
 
-    await new Promise(resolve => setTimeout(resolve));
+global.simulateSecureStorageChanges = async ({storage, changes, areaName = "local"}) => {
+    const encryptedChanges = Object.fromEntries(
+        await Promise.all(
+            Object.entries(changes).map(async ([key, {oldValue, newValue}]) => [
+                key,
+                {
+                    oldValue: oldValue !== undefined ? await (storage as any)["encrypt"](oldValue) : undefined,
+                    newValue: newValue !== undefined ? await (storage as any)["encrypt"](newValue) : undefined,
+                },
+            ] as const)
+        )
+    );
+
+    global.simulateStorageChanges({storage, changes: encryptedChanges, areaName});
+
+    await flushMacrotask();
 };
 
 // Needed to access a specific key in Storage
 // Native GET method does not work correctly with a specific key other than "key"
 // Pull Request with bug fix - https://github.com/RickyMarou/jest-webextension-mock/pull/19
-global.storageLocalGet = (key: string | string[], storage?: StorageProvider<StorageState>): Promise<any> => {
+global.storageLocalGet = (key: string | string[], storage?: object): Promise<any> => {
     const formatKey = (k: string) => (storage ? (storage as any)["getFullKey"](k) : k);
     return new Promise(resolve => {
         chrome.storage.local.get(null, res => {
@@ -256,80 +307,8 @@ Object.defineProperty(globalThis, "crypto", {
     configurable: true,
 });
 
-const lockQueues = new Map<string, Promise<void>>();
-
-const createAbortError = () => {
-    const error = new Error("The lock request was aborted.");
-    error.name = "AbortError";
-
-    return error;
-};
-
-const requestLock: LockManager["request"] = async <T>(
-    name: string,
-    optionsOrCallback: LockOptions | LockGrantedCallback<T>,
-    maybeCallback?: LockGrantedCallback<T>
-): Promise<T> => {
-    const callback = typeof optionsOrCallback === "function" ? optionsOrCallback : maybeCallback;
-    const options = typeof optionsOrCallback === "function" ? {} : optionsOrCallback;
-
-    if (!callback) {
-        throw new Error("Lock callback is required.");
-    }
-
-    const signal = options?.signal;
-
-    if (signal?.aborted) {
-        throw createAbortError();
-    }
-
-    const previous = lockQueues.get(name) ?? Promise.resolve();
-
-    let release: (() => void) | undefined;
-
-    const current = new Promise<void>(resolve => {
-        release = resolve;
-    });
-
-    lockQueues.set(name, previous.then(() => current));
-
-    await new Promise<void>((resolve, reject) => {
-        const onAbort = () => reject(createAbortError());
-
-        signal?.addEventListener("abort", onAbort, {once: true});
-
-        previous.then(
-            () => {
-                signal?.removeEventListener("abort", onAbort);
-
-                if (signal?.aborted) {
-                    reject(createAbortError());
-                    return;
-                }
-
-                resolve();
-            },
-            reject
-        );
-    });
-
-    try {
-        return await callback({name, mode: options?.mode ?? "exclusive"} as Lock);
-    } finally {
-        release?.();
-
-        if (lockQueues.get(name) === current) {
-            lockQueues.delete(name);
-        }
-    }
-};
-
-const locksMock: Pick<LockManager, "request"> = {
-    request: requestLock,
-};
-
 Object.defineProperty(globalThis.navigator, "locks", {
-    value: locksMock,
+    value: createWebLocksMock(),
     writable: true,
     enumerable: true,
     configurable: true,

@@ -1,9 +1,8 @@
+import {STORAGE_KEY_SEPARATOR} from "../constants";
 import AbstractStorage, {type StorageOptions} from "./AbstractStorage";
-import type {StorageLockOptions, StorageState, StorageWatchOptions} from "../types";
+import type {StorageLockOptions, StorageState} from "../types";
 
-type StorageChange = chrome.storage.StorageChange;
-
-export default class Storage<T extends StorageState> extends AbstractStorage<T> {
+export default class Storage<T extends StorageState = StorageState> extends AbstractStorage<T> {
     constructor(options: StorageOptions = {}) {
         super(options);
     }
@@ -14,29 +13,19 @@ export default class Storage<T extends StorageState> extends AbstractStorage<T> 
         await this.remove(Object.keys(allValues), options);
     }
 
-    protected isKeyValid(key: string): boolean {
-        if (!super.isKeyValid(key)) return false;
-
-        const parts = key.split(this.separator);
-
-        return parts.length === 1 || (parts.length === 2 && parts[0] === this.namespace);
-    }
-
-    protected async handleChange<P extends T>(
-        key: string,
-        changes: StorageChange,
-        options: StorageWatchOptions<P>
-    ): Promise<void> {
-        await this.triggerChange(key, changes, options);
-    }
-
     protected getFullKey(key: keyof T): string {
-        return this.namespace ? `${this.namespace}${this.separator}${key.toString()}` : key.toString();
+        const logicalKey = this.toLogicalKey(key);
+
+        return this.namespace ? `${this.namespace}${STORAGE_KEY_SEPARATOR}${logicalKey}` : logicalKey;
     }
 
-    protected getNamespaceOfKey(key: string): string | undefined {
-        const fullKeyParts = key.split(this.separator);
+    protected decodeFullKey(fullKey: string): keyof T | null {
+        const parts = fullKey.split(STORAGE_KEY_SEPARATOR);
 
-        return fullKeyParts.length === 2 ? fullKeyParts[0] : undefined;
+        if (this.namespace === undefined) {
+            return parts.length === 1 ? (fullKey as keyof T) : null;
+        }
+
+        return parts.length === 2 && parts[0] === this.namespace ? (parts[1] as keyof T) : null;
     }
 }

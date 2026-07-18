@@ -83,12 +83,13 @@ Breaking changes:
 
 ## What affects versioning (SemVer policy)
 Version bumps are derived from commit history via `@release-it/conventional-changelog` and our policy:
-- MAJOR (`x.0.0`) — any commit containing `BREAKING CHANGE` notes.
-- MINOR (`0.y.0`) — `feat` and `revert` commits.
+- MAJOR (`x.0.0`) — a breaking commit when the current version is `1.0.0` or newer.
+- MINOR (`0.y.0`) — `feat` and `revert` commits, plus breaking commits while the package is on `0.x`.
 - PATCH (`0.0.z`) — `fix`, `perf`, `refactor`, `ci`.
 - No bump by default — `docs`, `test`, `chore`, `build` (these do not trigger an automatic release by themselves).
 
 Notes:
+- Both the `type!:` syntax and a `BREAKING CHANGE:`/`BREAKING-CHANGE:` footer use the same breaking policy.
 - If multiple types are present, the highest applicable level wins.
 - Only visible types appear in the generated CHANGELOG; some meta types are hidden from release notes.
 
