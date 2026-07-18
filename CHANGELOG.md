@@ -1,5 +1,89 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.7.0 (2026-07-18)
+
+### 💥 Breaking Changes
+
+* LockManager is now exported as WebLockManager. Update package-root imports to
+use WebLockManager; the old LockManager alias is not retained.
+
+* set rejects undefined, and flat keys or namespaces containing ":" are rejected.
+Unnamespaced SecureStorage keys now use secure::<key> instead of secure:<key>, so legacy
+ciphertext requires explicit raw migration. Listener data or corruption errors now terminate the
+affected registration and surface asynchronously.
+
+* support aggregate batch update comparison
+
+
+### ✨ Features
+
+* add batch storage operations and subscriptions ([dff46a7](https://github.com/addon-stack/storage/commit/dff46a71fcbdf0951c20e9e32c9c04c134a07129))
+
+  - add multi-key overloads for get, set, and update
+  - add subscribe with FIFO event formatting and keep watch as a per-key projection
+  - align Storage, SecureStorage, and MonoStorage locking, corruption, recovery, and no-op semantics
+  - introduce strict physical-key decoding and explicit SecureStorage legacy migration
+  - cover runtime, type-level, locking, codec, React, and batch-planner behavior
+
+* **helpers:** add functional storage API ([5c2c43c](https://github.com/addon-stack/storage/commit/5c2c43c6e719c9e3ef6ebec8790a64c05eba051c))
+
+  - add one-shot get/set and provider factories for all storage areas
+  - support secure and mono providers through typed overloads
+  - document provider reuse and cover runtime and type contracts
+
+* support aggregate batch update comparison ([18d9e78](https://github.com/addon-stack/storage/commit/18d9e785e14d1e1fd9d0c659959c62c0c71b361a))
+
+
+* **types:** support storage without explicit state ([70dce43](https://github.com/addon-stack/storage/commit/70dce436df13769c7c95432ce1898890d769de7f))
+
+  - add default state generics across providers, factories, and related public types
+  - preserve strict schema typing while documenting the loose playground mode
+  - cover genericless and typed usage with compile-time assertions
+
+
+
+### 📝 Documentation
+
+* restructure README around functional API ([f7f841b](https://github.com/addon-stack/storage/commit/f7f841ba78f495aaa97071339834c096d5059f5c))
+
+  - make functional helpers and storage-area selection the primary onboarding path
+  - consolidate class, batch, locking, watch, secure, and MonoStorage documentation
+  - clarify provider scope, recovery behavior, public errors, and runtime limits
+
+* update package description ([053e844](https://github.com/addon-stack/storage/commit/053e844eb56504fd720c6bacce6450c584830356))
+
+  Highlight the functional API, type safety, batch operations,
+  encryption, and subscriptions in npm package metadata.
+
+
+
+### 🧹 Chores
+
+* **release:** align breaking-change bumps before 1.0 ([96c550c](https://github.com/addon-stack/storage/commit/96c550cdcdecc87e9ab5a5f119a10022a5c7636d))
+
+  - treat breaking commits as minor releases on 0.x and major releases on 1.x
+  - recognize bang syntax, parser flags, notes, and breaking footers consistently
+  - preserve the minor release policy for revert commits
+  - add focused release-policy tests and contributor documentation
+
+
+
+### 🛠️ Refactoring
+
+* **locking:** rename LockManager to WebLockManager ([daecdaa](https://github.com/addon-stack/storage/commit/daecdaa5255a8904fe3ca34661f38c0c14f856ab))
+
+  - move the Web Locks implementation and tests into src/locking
+  - add a locking barrel and re-export built-in lockers from the package root
+  - keep WebLockManager as the default locker for storage providers
+  - document the built-in implementation and verify its public type export
+
+
+
+
+### 🙌 Contributors
+
+- [Anjey Tsibylskij](https://github.com/atldays) (@atldays) — commits: 9
+
 ## 🚀 Release `@addon-core/storage` v0.6.0 (2026-05-04)
 
 
