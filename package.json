@@ -1,7 +1,7 @@
 {
   "name": "@addon-core/storage",
   "version": "0.6.0",
-  "description": "Typed storage for browser extensions with lock-coordinated updates, namespaces, encryption, and React bindings.",
+  "description": "Developer-friendly, type-safe storage for browser extensions with functional helpers, batch operations, encryption, and subscriptions.",
   "type": "module",
   "license": "MIT",
   "repository": {
