@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": false,
+    "types": []
+  },
+  "include": [
+    "react-exact.types.ts"
+  ]
+}

@@ -1,4 +1,4 @@
-import type {StorageLocker, StorageLockOptions} from "../types";
+import type {StorageLocker, StorageLockOptions} from "~/types";
 
 interface LockRequestSignal {
     signal: AbortSignal | undefined;
@@ -15,6 +15,7 @@ export default class WebLockManager implements StorageLocker {
         try {
             return await locks.request(this.getLockName(name), {mode: "exclusive", signal}, async () => {
                 cleanup();
+
                 return await task();
             });
         } finally {
@@ -73,6 +74,7 @@ export default class WebLockManager implements StorageLocker {
         if (signal.aborted) {
             controller.abort(signal.reason);
             cleanup();
+
             return {signal: controller.signal, cleanup};
         }
 

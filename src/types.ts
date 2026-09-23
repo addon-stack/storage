@@ -36,9 +36,14 @@ export interface StorageUpdateOptions<T> extends StorageLockOptions {
     compare?: StorageUpdateComparer<T>;
 }
 
+/** Omitted keys are unchanged; an explicit undefined deletes the selected key. */
+export type StorageBatchPatch<T extends StorageState = StorageState, K extends keyof T = keyof T> = {
+    [Key in K]?: T[Key] | undefined;
+};
+
 export type StorageBatchUpdater<T extends StorageState = StorageState, K extends keyof T = keyof T> = (
     prev: Partial<Pick<T, K>>
-) => Partial<Pick<T, K>> | Promise<Partial<Pick<T, K>>>;
+) => StorageBatchPatch<T, K> | Promise<StorageBatchPatch<T, K>>;
 
 export type StorageBatchSnapshot<T extends StorageState = StorageState, K extends keyof T = keyof T> = Readonly<
     Partial<Pick<T, K>>
@@ -83,6 +88,11 @@ export type StorageSubscriber<T extends StorageState = StorageState> = (
     changes: StorageChanges<T>
 ) => StorageListenerResult;
 
+export interface StorageSubscribeOptions {
+    /** Handles a terminal decoding/formatting failure after the subscription is disposed. */
+    onError?: (error: unknown) => StorageListenerResult;
+}
+
 // prettier-ignore
 export interface StorageProvider<T extends StorageState = StorageState> {
     set<K extends keyof T>(key: K, value: StorageSetValue<T[K]>): Promise<void>;
@@ -111,9 +121,9 @@ export interface StorageProvider<T extends StorageState = StorageState> {
 
     clear(options?: StorageLockOptions): Promise<void>;
 
-    watch(options: StorageWatchOptions<T>): () => void;
+    watch(watcher: StorageWatchOptions<T>, options?: StorageSubscribeOptions): () => void;
 
-    subscribe(callback: StorageSubscriber<T>): () => void;
+    subscribe(callback: StorageSubscriber<T>, options?: StorageSubscribeOptions): () => void;
 }
 
 export interface StorageHelper<Options extends object> {

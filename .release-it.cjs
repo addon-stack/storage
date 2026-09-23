@@ -70,13 +70,16 @@ function getContributors() {
 
             if (existing) {
                 existing.count += count;
+
                 if (!existing.login && gh.login) {
                     existing.login = gh.login;
                     existing.url = gh.url;
                 }
+
                 if (!existing.name && displayName) {
                     existing.name = displayName;
                 }
+
                 if (!existing.email && displayEmail) {
                     existing.email = displayEmail;
                 }
@@ -166,6 +169,7 @@ function whatBump(commits, currentVersion = pkg.version) {
     }
 
     if (isMinor) return {level: 1};
+
     if (isPatch) return {level: 2};
 
     return null;
@@ -182,19 +186,15 @@ const createReleaseConfig = () => {
             requireUpstream: false,
             requireBranch: false,
             commit: true,
-            // biome-ignore lint/suspicious/noTemplateCurlyInString: release-it placeholder
             commitMessage: "chore(release): v${version}",
             tag: true,
-            // biome-ignore lint/suspicious/noTemplateCurlyInString: release-it placeholder
             tagName: "v${version}",
-            // biome-ignore lint/suspicious/noTemplateCurlyInString: release-it placeholder
             tagAnnotation: "v${version}",
             push: true,
         },
 
         github: {
             release: true,
-            // biome-ignore lint/suspicious/noTemplateCurlyInString: release-it placeholder
             releaseName: "v${version}",
             autoGenerate: false,
             // Ensure GitHub receives exactly the generated changelog body

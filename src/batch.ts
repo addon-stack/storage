@@ -1,5 +1,7 @@
 import {dequal as defaultCompare} from "dequal/lite";
+
 import {copyRecord, copyRecordWithoutPrototype, createRecord, hasOwn, isPlainObject, setRecordValue} from "./utils";
+
 import type {StorageBatchUpdateComparer, StorageState} from "./types";
 
 export interface StorageBatchPlan<T extends StorageState, K extends keyof T> {

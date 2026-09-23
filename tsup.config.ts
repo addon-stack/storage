@@ -1,14 +1,10 @@
-import {defineConfig} from "tsup";
 import {fixImportsPlugin} from "esbuild-fix-imports-plugin";
+import {defineConfig} from "tsup";
 
 export default defineConfig({
     entry: [
         "src/**/*.ts",
         "!src/types.ts",
-        "!src/**/*.test.ts",
-        "!src/**/*.test.tsx",
-        "!src/**/*.spec.ts",
-        "!src/**/*.spec.tsx",
     ],
     outDir: "dist",
     format: ["esm"],

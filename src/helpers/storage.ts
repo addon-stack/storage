@@ -1,6 +1,7 @@
-import {SecureStorage, type SecureStorageOptions, Storage, type StorageOptions} from "../providers";
-import {isPlainObject} from "../utils";
-import type {StorageHelper, StorageProvider, StorageState} from "../types";
+import {SecureStorage, type SecureStorageOptions, Storage, type StorageOptions} from "~/providers";
+import {isPlainObject} from "~/utils";
+
+import type {StorageHelper, StorageProvider, StorageState} from "~/types";
 
 type StorageProviderFactory<Options extends object> = <State extends StorageState = StorageState>(
     options?: Options
@@ -61,11 +62,13 @@ const createHelper = <Options extends object>(
 
             if (Array.isArray(argument)) {
                 assertBatchKeys(helperName, argument);
+
                 return createProvider().get(argument);
             }
 
             if (isPlainObject(argument)) {
                 assertOptions(helperName, argument, allowedKeys);
+
                 return createProvider(argument as Options);
             }
 

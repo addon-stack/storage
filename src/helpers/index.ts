@@ -1,3 +1,8 @@
+export type {
+    SecureStorageHelperOptions,
+    StorageAreaHelperOptions,
+    StorageHelperOptions,
+} from "./storage";
 export {
     storage,
     storageLocal,
@@ -5,9 +10,4 @@ export {
     storageSecure,
     storageSession,
     storageSync,
-} from "./storage";
-export type {
-    SecureStorageHelperOptions,
-    StorageAreaHelperOptions,
-    StorageHelperOptions,
 } from "./storage";

@@ -36,6 +36,11 @@ API around it:
 npm i @addon-core/storage
 ```
 
+TypeScript consumers require TypeScript 5.4 or newer. TypeScript is an optional
+peer dependency; JavaScript consumers do not need to install it. The published
+declarations are checked from an installed npm tarball with the minimum and current
+compiler versions and both React 18 and React 19 types.
+
 With pnpm or Yarn:
 
 ```bash
@@ -578,6 +583,23 @@ current event is not delivered partially. The error is then surfaced
 asynchronously. A `try/catch` around registration cannot catch an error produced
 by a later native event. Separately registered listeners remain independent.
 
+Pass `onError` to `subscribe()` or as the second argument of `watch()` to handle
+terminal subscription failures. The failed registration is still disposed before
+this callback runs; subscribe again after resolving the failure. Without `onError`,
+the asynchronous exception behavior described above is preserved.
+
+```ts
+const unsubscribe = settings.subscribe(
+    changes => console.log(changes),
+    {onError: error => console.error("Subscription closed", error)},
+);
+```
+
+This handler receives decoding/formatting errors, including those forwarded through
+MonoStorage. It does not intercept exceptions from application change callbacks.
+A throw or rejection from `onError` itself is surfaced asynchronously.
+
+
 For `SecureStorage`, one corrupted matching entry in a multi-key native event
 rejects that entire logical event, including valid sibling changes in the same
 provider scope.
@@ -760,54 +782,240 @@ fail instead of coercing damaged data into a new bucket.
 
 ## React
 
-The React adapter is available through `@addon-core/storage/react`.
+The React 18/19 adapter is available through `@addon-core/storage/react`. `useStorage()`
+accepts one options object and returns an object with data, status, and asynchronous
+operations. Choose exactly one of `key` or `keys`. Use it in client-rendered extension
+UI; the adapter does not provide a server snapshot.
+
+### One key
+
+Create a reusable provider outside the component. The hook reads it and subscribes
+to changes; it does not recreate the provider on each render.
 
 ```tsx
+import {storageLocal, StorageStatus} from "@addon-core/storage";
 import {useStorage} from "@addon-core/storage/react";
 
-export function ThemeToggle() {
-    const [theme, setTheme] = useStorage<"light" | "dark">(
-        "theme",
-        "light"
-    );
+type Settings = {
+    theme: "light" | "dark";
+    language: "en" | "ru";
+    count: number;
+};
 
-    return (
-        <button onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
-            Theme: {theme}
-        </button>
-    );
-}
-```
-
-Pass a reusable provider when the hook should use a different area, namespace, or
-storage model:
-
-```tsx
-import {storageSync} from "@addon-core/storage";
-import {useStorage} from "@addon-core/storage/react";
-
-interface Settings {
-    theme?: "light" | "dark";
-}
-
-const settings = storageSync<Settings>({
-    namespace: "settings",
-});
+const settings = storageLocal<Settings>({namespace: "settings"});
 
 export function ThemeToggle() {
-    const [theme, setTheme] = useStorage({
-        defaultValue: "light",
-        key: "theme",
+    const theme = useStorage({
         storage: settings,
+        key: "theme",
+        defaultValue: "light",
     });
 
+    if (theme.status === StorageStatus.Loading) return <span>Loading settings…</span>;
+    if (theme.status === StorageStatus.Error) return <span>Could not read settings.</span>;
+
+    async function toggle() {
+        try {
+            await theme.update(previous => previous === "dark" ? "light" : "dark");
+        } catch {
+            // The original error is also available as theme.mutationError.
+        }
+    }
+
     return (
-        <button onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
-            Theme: {theme}
-        </button>
+        <>
+            <button disabled={theme.isMutating} onClick={toggle}>
+                Theme: {theme.value}
+            </button>
+            {theme.mutationError !== undefined && <span>Could not save settings.</span>}
+        </>
     );
 }
 ```
+
+Omit `storage` to use a shared default local provider:
+
+```tsx
+const counter = useStorage({key: "count", defaultValue: 0});
+const token = useStorage<string>({key: "token"});
+```
+
+Pass a typed provider for schema-based key and value inference. The same hook works
+with plain, secure, and MonoStorage providers, including their area and namespace.
+Managed providers can be observed; native writes to managed storage reject.
+
+### Selected keys
+
+`keys` returns an object keyed by the selection, even when the array contains one
+key. Defaults use the same shape. Missing keys without defaults are omitted.
+
+```tsx
+const preferences = useStorage({
+    storage: settings,
+    keys: ["theme", "language"],
+    defaultValue: {theme: "light", language: "en"},
+});
+
+preferences.value.theme;
+preferences.value.language;
+preferences.exists.theme;
+preferences.exists.language;
+```
+
+If only `theme: "dark"` is stored, the result is:
+
+```ts
+{
+    value: {theme: "dark", language: "en"},
+    exists: {theme: true, language: false},
+    status: "ready",
+    // ...operations and error state
+}
+```
+
+Batch `set()` and `update()` apply patches: omitted fields remain unchanged. Methods
+are restricted to selected keys, including runtime validation of batch patches.
+
+```ts
+await preferences.set({theme: "dark"}); // language is unchanged
+await preferences.update(previous => ({
+    theme: previous.theme === "dark" ? "light" : "dark",
+}));
+await preferences.remove(); // removes theme and language, not the namespace
+await preferences.refresh();
+```
+
+An empty `keys` selection is immediately ready with empty `value` and `exists` maps.
+Duplicate keys are deduplicated, and changing only their order does not restart
+reading or subscriptions. Inline options and equivalent arrays are supported.
+
+For options declared outside the call, use `satisfies` to check the schema and
+`as const` to preserve literal keys:
+
+```ts
+import type {UseStorageBatchOptions, UseStorageSingleOptions} from "@addon-core/storage/react";
+
+const themeOptions = {
+    storage: settings,
+    key: "theme",
+} satisfies UseStorageSingleOptions<Settings>;
+
+const preferenceKeys = ["theme", "language"] as const;
+const preferenceOptions = {
+    storage: settings,
+    keys: preferenceKeys,
+} satisfies UseStorageBatchOptions<Settings>;
+
+const theme = useStorage(themeOptions);
+const preferences = useStorage(preferenceOptions);
+```
+
+Forwarding hooks can accept `UseStorageSingleOptions<State, Key>` or
+`UseStorageBatchOptions<State, Key>` and keep the corresponding result type.
+`storage` is optional in both; omitted storage uses the default local provider.
+Dynamic `UseStorageOptions<State, Key>` parameters return a union of the single
+and batch results. An optional default does not remove `undefined` from `value`.
+
+### Readiness and defaults
+
+`status` uses the string enum `StorageStatus`, imported from `@addon-core/storage`:
+`Loading`, `Ready`, and `Error`. The enum is shared by all framework adapters.
+Its runtime values are `"loading"`, `"ready"`, and `"error"`. When a plain string
+type is needed, derive it from the enum instead of declaring a separate union:
+
+```ts
+import {StorageStatus} from "@addon-core/storage";
+
+type StatusText = `${StorageStatus}`;
+```
+
+| Situation | `value` | `status` | Single-key `exists` |
+| --- | --- | --- | --- |
+| Initial read is pending | Default or `undefined` | `loading` | `undefined` |
+| Stored key is found | Stored value | `ready` | `true` |
+| Key is absent | Default or `undefined` | `ready` | `false` |
+| Initial read fails | Default or `undefined` | `error` | `undefined` |
+| Stored value is `null` | `null` | `ready` | `true` |
+
+For `keys`, `exists` contains one `boolean | undefined` per selected key. `status`
+describes the selected data, not the entire storage area. A selected key can be
+resolved by a storage event while the initial read is pending. `ready` means every
+selected key is resolved; it does not mean every key exists or that cloud sync has
+completed. A read/subscription failure produces `error`.
+
+Defaults are display fallbacks. They are available on the first render, never
+persisted automatically, and applied again after deletion. `null`, `false`, `0`,
+and empty strings are stored values. Consumers sharing a provider may use different
+defaults. Changing defaults does not read or write storage.
+Batch `value` keeps its identity while its displayed values remain deeply equal,
+including when defaults are written inline or status fields change.
+
+The hook infers values from the provider schema. Defined defaults remove `undefined`
+from the displayed single value or the corresponding batch properties; properties
+without defaults can still be absent.
+
+### Operations and errors
+
+| Member | Contract |
+| --- | --- |
+| `set(value)` / `set(patch)` | Writes defined values; returns `Promise<void>` |
+| `update(updater, options?)` | Delegates to the provider's single/batch update and returns its raw result |
+| `remove(options?)` | Removes the selected key(s); returns `Promise<void>` |
+| `refresh()` | Re-reads selected keys and reinstalls a failed subscription; returns `Promise<void>` |
+| `error` | Original read or subscription error; initially `undefined` |
+| `isMutating` | Whether any selected key has a pending hook mutation |
+| `mutationError` | Error from the latest-started mutation for a key; cleared by the next mutation |
+
+Updater callbacks receive actual stored values, including missing keys, without
+UI defaults. Updaters can be asynchronous. `compare`, `signal`, and `timeout` are
+forwarded to the provider; existing locking and partial-update guarantees apply.
+Invalid batch shapes or unselected keys passed to `set()` reject before changing
+mutation state or calling storage. Updater patches are checked when the callback
+runs inside the provider's update operation.
+
+In Firefox content scripts, the default Web Locks implementation can reject locked
+operations with `Permission denied to access property "then"`
+([Mozilla bug 1873028](https://bugzilla.mozilla.org/show_bug.cgi?id=1873028)).
+This also affects direct provider calls. Perform these operations in an extension
+page or background context through your application's messaging layer. The hook
+exposes the original error through the returned promise and `mutationError`.
+
+Mutations show confirmed storage data, without optimistic values or rollback.
+After success, the subscription updates selected values without an additional
+read. The mutation promise can resolve and `isMutating` become `false` before
+the event is delivered, particularly when secure values need to be decrypted.
+Use the result returned by `update()` when the caller needs its computed value;
+call `refresh()` when an explicit read of the selected keys is required.
+
+After failure, selected keys are re-read to recover actual state, including partial
+batch writes. The promise rejects with the original provider error. A recovery
+read failure is exposed through `error` and does not replace the mutation error.
+`isMutating` includes this recovery read.
+For a batch, `mutationError` is the first selected key's error in sorted key order;
+separate calls can be caught independently through their returned promises.
+
+Read failures after a successful load retain the last confirmed data. A background
+refresh does not replace ready data with a loading screen. A mutation failure does
+not change readiness when reconciliation succeeds. Catch returned promises in event
+handlers; the hook does not swallow operation failures.
+
+A newly mounted consumer retries failed reads for its selection and a failed shared
+subscription. A mutation also retries an already failed subscription before calling
+the provider. Reconnecting re-reads retained keys that may have missed events;
+overlapping consumers share a pending retry. Recovery failures are reported through
+`error` and do not replace the mutation's result. There is no automatic retry loop:
+another mount, mutation, or explicit `refresh()` can retry a failed subscription.
+
+Multiple consumers of the same provider share a subscription and in-flight reads
+for overlapping keys. Events update a selected batch together. A mixed native
+set/remove update can still produce two events; it is not a database transaction.
+Different provider instances have separate caches. After the final consumer and
+pending mutation release a key, its cache is discarded. Subscription cleanup is
+deferred by one microtask to handle React StrictMode setup/cleanup pairs.
+
+Switching a provider or selection observes the new source and ignores stale reads
+from the previous source. A cached resolved key can be ready immediately. Treat
+returned values as immutable; write through the methods instead of mutating snapshots.
 
 ## API reference
 
@@ -826,8 +1034,8 @@ Every `StorageProvider` exposes:
 | `update(keys, updater, options?)` | Lock and update a selected snapshot |
 | `remove(key \| keys, options?)` | Remove one or several values |
 | `clear(options?)` | Remove every value owned by the provider |
-| `watch(callback \| handlers)` | Observe changes per logical key |
-| `subscribe(callback)` | Observe one logical change map per event |
+| `watch(callback \| handlers, {onError}?)` | Observe changes per logical key |
+| `subscribe(callback, options?)` | Observe one logical change map per event |
 
 ### Public errors
 

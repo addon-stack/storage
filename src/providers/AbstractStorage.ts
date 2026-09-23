@@ -1,13 +1,17 @@
 import {browser} from "@addon-core/browser";
 import {callWithPromise, handleListener} from "@addon-core/browser/utils";
 import {dequal as defaultCompare} from "dequal/lite";
-import {planBatchUpdate} from "../batch";
-import {StoragePartialUpdateError} from "../errors";
-import {WebLockManager} from "../locking";
+
+import MonoStorage from "./MonoStorage";
+
+import {planBatchUpdate} from "~/batch";
+import {StoragePartialUpdateError} from "~/errors";
+import {WebLockManager} from "~/locking";
 import {
     assertStorageKey,
     assertStorageNamespace,
     assertStorageSetValue,
+    copyRecord,
     copyRecordWithoutPrototype,
     createRecord,
     hasOwn,
@@ -16,9 +20,9 @@ import {
     prepareStorageSetValues,
     scheduleUnhandledError,
     setRecordValue,
-} from "../utils";
-import {watchChanges} from "../watch";
-import MonoStorage from "./MonoStorage";
+} from "~/utils";
+import {watchChanges} from "~/watch";
+
 import type {
     StorageBatchUpdateOptions,
     StorageBatchUpdater,
@@ -28,11 +32,12 @@ import type {
     StorageProvider,
     StorageSetValue,
     StorageState,
+    StorageSubscribeOptions,
     StorageSubscriber,
     StorageUpdateOptions,
     StorageUpdater,
     StorageWatchOptions,
-} from "../types";
+} from "~/types";
 
 const storage = () => browser().storage as typeof chrome.storage;
 
@@ -185,6 +190,7 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
             }
 
             await this.setBatchUnlocked(values);
+
             return;
         }
 
@@ -242,6 +248,7 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
                     }
 
                     await this.removeUnlocked(key);
+
                     return undefined;
                 }
 
@@ -330,17 +337,9 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
     }
 
     protected async getStoredItems(keys: string | string[] | null): Promise<Record<string, unknown>> {
-        return await callWithPromise(resolve => {
-            this.storage.get(keys, result => {
-                const items = createRecord<Record<string, unknown>>();
+        const result = await callWithPromise<Record<string, unknown>>(resolve => this.storage.get(keys, resolve));
 
-                for (const [key, value] of Object.entries(result)) {
-                    setRecordValue(items, key, value);
-                }
-
-                resolve(items);
-            });
-        });
+        return copyRecord(result);
     }
 
     public async remove<K extends keyof T>(keys: K | K[], options?: StorageLockOptions): Promise<void> {
@@ -415,17 +414,17 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
         });
     }
 
-    public watch(watcher: StorageWatchOptions<T>): () => void {
+    public watch(watcher: StorageWatchOptions<T>, options?: StorageSubscribeOptions): () => void {
         if (typeof watcher !== "function") {
             for (const key of Object.keys(watcher) as (keyof T)[]) {
                 assertStorageKey(key);
             }
         }
 
-        return watchChanges<T>(callback => this.subscribe(callback), watcher);
+        return watchChanges<T>(callback => this.subscribe(callback, options), watcher);
     }
 
-    public subscribe(callback: StorageSubscriber<T>): () => void {
+    public subscribe(callback: StorageSubscriber<T>, options?: StorageSubscribeOptions): () => void {
         const queue: [keyof T, StorageChange][][] = [];
         let disposed = false;
         let processing = false;
@@ -485,7 +484,12 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
             } catch (error) {
                 if (!disposed) {
                     dispose();
-                    scheduleUnhandledError(error);
+
+                    if (options?.onError) {
+                        invokeCallback(() => options.onError?.(error));
+                    } else {
+                        scheduleUnhandledError(error);
+                    }
                 }
             } finally {
                 processing = false;
@@ -524,10 +528,10 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
         key: keyof P,
         changes: StorageChange
     ): Promise<{
-        key: keyof P;
-        newValue: P[keyof P] | undefined;
-        oldValue: P[keyof P] | undefined;
-    }> {
+            key: keyof P;
+            newValue: P[keyof P] | undefined;
+            oldValue: P[keyof P] | undefined;
+        }> {
         return {
             key,
             newValue: changes.newValue as P[keyof P] | undefined,

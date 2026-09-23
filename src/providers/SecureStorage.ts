@@ -1,13 +1,15 @@
-import {STORAGE_KEY_SEPARATOR} from "../constants";
-import {StorageCorruptionError} from "../errors";
-import {createRecord, hasOwn, setRecordValue} from "../utils";
 import AbstractStorage, {
     type AreaOptions,
     type FactoryOptions,
     type StaticMake,
     type StorageOptions,
 } from "./AbstractStorage";
-import type {StorageLockOptions, StorageProvider, StorageState} from "../types";
+
+import {STORAGE_KEY_SEPARATOR} from "~/constants";
+import {StorageCorruptionError} from "~/errors";
+import {createRecord, hasOwn, setRecordValue} from "~/utils";
+
+import type {StorageLockOptions, StorageProvider, StorageState} from "~/types";
 
 type StorageChange = chrome.storage.StorageChange;
 
@@ -39,7 +41,6 @@ export default class SecureStorage<T extends StorageState = StorageState> extend
         ) => StorageProvider<S>,
     >(this: C, options?: FactoryOptions<C>): StorageProvider<S>;
     public static override make(options?: any): StorageProvider<StorageState> {
-        // biome-ignore lint/complexity/noThisInStatic: Preserve polymorphic static factory dispatch.
         return super.make(options);
     }
 
@@ -56,7 +57,6 @@ export default class SecureStorage<T extends StorageState = StorageState> extend
         ) => StorageProvider<S>,
     >(this: C & {make: StaticMake<S, O>}, options?: AreaOptions<C>): StorageProvider<S>;
     public static override Local(options?: any): StorageProvider<StorageState> {
-        // biome-ignore lint/complexity/noThisInStatic: Preserve polymorphic static factory dispatch.
         return this.make({...options, area: "local"});
     }
 
@@ -73,7 +73,6 @@ export default class SecureStorage<T extends StorageState = StorageState> extend
         ) => StorageProvider<S>,
     >(this: C & {make: StaticMake<S, O>}, options?: AreaOptions<C>): StorageProvider<S>;
     public static override Session(options?: any): StorageProvider<StorageState> {
-        // biome-ignore lint/complexity/noThisInStatic: Preserve polymorphic static factory dispatch.
         return this.make({...options, area: "session"});
     }
 
@@ -90,7 +89,6 @@ export default class SecureStorage<T extends StorageState = StorageState> extend
         ) => StorageProvider<S>,
     >(this: C & {make: StaticMake<S, O>}, options?: AreaOptions<C>): StorageProvider<S>;
     public static override Sync(options?: any): StorageProvider<StorageState> {
-        // biome-ignore lint/complexity/noThisInStatic: Preserve polymorphic static factory dispatch.
         return this.make({...options, area: "sync"});
     }
 
@@ -107,7 +105,6 @@ export default class SecureStorage<T extends StorageState = StorageState> extend
         ) => StorageProvider<S>,
     >(this: C & {make: StaticMake<S, O>}, options?: AreaOptions<C>): StorageProvider<S>;
     public static override Managed(options?: any): StorageProvider<StorageState> {
-        // biome-ignore lint/complexity/noThisInStatic: Preserve polymorphic static factory dispatch.
         return this.make({...options, area: "managed"});
     }
 
@@ -212,9 +209,11 @@ export default class SecureStorage<T extends StorageState = StorageState> extend
         const encryptedEntries = await Promise.all(
             (Object.keys(values) as (keyof T)[]).map(async key => {
                 const value = values[key];
+
                 return [key, await this.encrypt(value)] as const;
             })
         );
+
         const encryptedValues = createRecord<Partial<T>>();
 
         for (const [key, value] of encryptedEntries) {
@@ -234,12 +233,15 @@ export default class SecureStorage<T extends StorageState = StorageState> extend
 
     protected async getBatchUnlocked<K extends keyof T>(keys: readonly K[]): Promise<Partial<Pick<T, K>>> {
         const encryptedValues = await super.getBatchUnlocked(keys);
+
         const decryptedEntries = await Promise.all(
             (Object.keys(encryptedValues) as K[]).map(async key => {
                 const encryptedValue = encryptedValues[key];
+
                 return [key, await this.decodeStoredValue(encryptedValue, key)] as const;
             })
         );
+
         const decryptedValues = createRecord<Partial<Pick<T, K>>>();
 
         for (const [key, value] of decryptedEntries) {
@@ -278,10 +280,10 @@ export default class SecureStorage<T extends StorageState = StorageState> extend
         key: keyof P,
         changes: StorageChange
     ): Promise<{
-        key: keyof P;
-        newValue: P[keyof P] | undefined;
-        oldValue: P[keyof P] | undefined;
-    }> {
+            key: keyof P;
+            newValue: P[keyof P] | undefined;
+            oldValue: P[keyof P] | undefined;
+        }> {
         const [newValue, oldValue] = await Promise.all([
             this.decodeChangeSide(changes, "newValue", key),
             this.decodeChangeSide(changes, "oldValue", key),
