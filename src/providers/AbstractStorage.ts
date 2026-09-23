@@ -29,6 +29,7 @@ import type {
     StorageProvider,
     StorageSetValue,
     StorageState,
+    StorageSubscribeOptions,
     StorageSubscriber,
     StorageUpdateOptions,
     StorageUpdater,
@@ -407,17 +408,17 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
         });
     }
 
-    public watch(watcher: StorageWatchOptions<T>): () => void {
+    public watch(watcher: StorageWatchOptions<T>, options?: StorageSubscribeOptions): () => void {
         if (typeof watcher !== "function") {
             for (const key of Object.keys(watcher) as (keyof T)[]) {
                 assertStorageKey(key);
             }
         }
 
-        return watchChanges<T>(callback => this.subscribe(callback), watcher);
+        return watchChanges<T>(callback => this.subscribe(callback, options), watcher);
     }
 
-    public subscribe(callback: StorageSubscriber<T>): () => void {
+    public subscribe(callback: StorageSubscriber<T>, options?: StorageSubscribeOptions): () => void {
         const queue: [keyof T, StorageChange][][] = [];
         let disposed = false;
         let processing = false;
@@ -477,7 +478,11 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
             } catch (error) {
                 if (!disposed) {
                     dispose();
-                    scheduleUnhandledError(error);
+                    if (options?.onError) {
+                        invokeCallback(() => options.onError?.(error));
+                    } else {
+                        scheduleUnhandledError(error);
+                    }
                 }
             } finally {
                 processing = false;

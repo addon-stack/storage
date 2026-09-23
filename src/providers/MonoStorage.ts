@@ -22,6 +22,7 @@ import type {
     StorageProvider,
     StorageSetValue,
     StorageState,
+    StorageSubscribeOptions,
     StorageSubscriber,
     StorageUpdateOptions,
     StorageUpdater,
@@ -310,11 +311,11 @@ export default class MonoStorage<T extends StorageState = StorageState, K extend
         await this.storage.remove(this.key, options);
     }
 
-    public watch(watcher: StorageWatchOptions<T>): () => void {
-        return watchChanges<T>(callback => this.subscribe(callback), watcher);
+    public watch(watcher: StorageWatchOptions<T>, options?: StorageSubscribeOptions): () => void {
+        return watchChanges<T>(callback => this.subscribe(callback, options), watcher);
     }
 
-    public subscribe(callback: StorageSubscriber<T>): () => void {
+    public subscribe(callback: StorageSubscriber<T>, options?: StorageSubscribeOptions): () => void {
         let disposed = false;
         let unsubscribeStorage: () => void = () => undefined;
 
@@ -327,32 +328,45 @@ export default class MonoStorage<T extends StorageState = StorageState, K extend
             unsubscribeStorage();
         };
 
-        unsubscribeStorage = this.storage.subscribe(changes => {
-            if (disposed || !hasOwn(changes, this.key)) {
+        const fail = (error: unknown): void => {
+            if (disposed) {
                 return;
             }
 
-            const bucketChange = changes[this.key];
-
-            if (!bucketChange) {
-                return;
+            dispose();
+            if (options?.onError) {
+                invokeCallback(() => options.onError?.(error));
+            } else {
+                scheduleUnhandledError(error);
             }
+        };
 
-            try {
-                const newBucket = this.decodeBucket(bucketChange.newValue);
-                const oldBucket = this.decodeBucket(bucketChange.oldValue);
-                const logicalChanges = this.diffBuckets(newBucket, oldBucket);
+        unsubscribeStorage = this.storage.subscribe(
+            changes => {
+                if (disposed || !hasOwn(changes, this.key)) {
+                    return;
+                }
 
-                if (!disposed && Object.keys(logicalChanges).length > 0) {
-                    invokeCallback(() => callback(logicalChanges));
+                const bucketChange = changes[this.key];
+
+                if (!bucketChange) {
+                    return;
                 }
-            } catch (error) {
-                if (!disposed) {
-                    dispose();
-                    scheduleUnhandledError(error);
+
+                try {
+                    const newBucket = this.decodeBucket(bucketChange.newValue);
+                    const oldBucket = this.decodeBucket(bucketChange.oldValue);
+                    const logicalChanges = this.diffBuckets(newBucket, oldBucket);
+
+                    if (!disposed && Object.keys(logicalChanges).length > 0) {
+                        invokeCallback(() => callback(logicalChanges));
+                    }
+                } catch (error) {
+                    fail(error);
                 }
-            }
-        });
+            },
+            {onError: fail}
+        );
 
         return dispose;
     }
