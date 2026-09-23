@@ -1,6 +1,6 @@
 {
   "name": "@addon-core/storage",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Developer-friendly, type-safe storage for browser extensions with functional helpers, batch operations, encryption, and subscriptions.",
   "type": "module",
   "license": "MIT",

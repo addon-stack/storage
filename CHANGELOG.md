@@ -1,5 +1,97 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.8.0 (2026-09-23)
+
+### 💥 Breaking Changes
+
+* useStorage now accepts an options object and returns named
+state and operations instead of a tuple. React 16/17 and TypeScript below 5.4
+are no longer supported.
+
+
+### ⚡️ Performance Improvements
+
+* **observer:** avoid rereading storage after successful mutations ([1e76a12](https://github.com/addon-stack/storage/commit/1e76a12705ee38992bdec3d32e49bd684d1ca260))
+
+  Use subscription events after successful writes and retain recovery reads for
+  failed operations. Reconnect failed subscriptions before mutations and recover
+  all retained keys without overwriting newer events or masking mutation errors.
+
+  Cover delayed delivery, no-op writes, shared snapshots, and recovery failures;
+  document when mutation promises can settle before the snapshot is updated.
+
+
+
+### ✨ Features
+
+* **providers:** add subscription errors and batch patch types ([f922b10](https://github.com/addon-stack/storage/commit/f922b105039c3856f9e866804edbd681914e2980))
+
+  Report terminal decoding and formatting failures through per-subscription
+  onError callbacks while preserving application callback error behavior.
+  Forward failures through MonoStorage and test subscription disposal and errors.
+
+  Add StorageBatchPatch so explicit undefined remains a supported deletion
+  operation with exactOptionalPropertyTypes.
+
+* **react:** support observable single and batch storage state ([4d2175e](https://github.com/addon-stack/storage/commit/4d2175e726d16c4b67f2b051748b022391c7f1b4))
+
+  Replace the positional tuple hook with mutually exclusive key/keys options and
+  an object result exposing readiness, existence, mutation state and async actions.
+
+  Share reads and subscriptions through a framework-independent StorageObserver
+  with a static instance registry, stable snapshots and recovery from failures.
+  Export StorageStatus and document defaults, update semantics and error handling.
+
+  Require React 18/19 and TypeScript 5.4+, update the browser dependency, and test
+  published declarations across minimum/current TypeScript and React 18/19 in CI.
+
+
+
+### 🐛 Bug Fixed
+
+* **deps:** restore missing changelog parser in lockfile ([bbd8843](https://github.com/addon-stack/storage/commit/bbd8843b5a9e4bf2cf7832be063ff488f6a2f09c))
+
+
+* **providers:** preserve storage read errors ([cc1b460](https://github.com/addon-stack/storage/commit/cc1b460c0e0dcb8799f7286ada41b7120c90ac73))
+
+
+
+
+### 🧪 Tests
+
+* migrate storage suites to browser testkit ([cb8e072](https://github.com/addon-stack/storage/commit/cb8e072d8978949f11a81dec352fa27e6c68aec5))
+
+  Replace jest-webextension-mock with the browser 0.9 testkit and real WebCrypto.
+  Organize runtime coverage into unit, provider integration, and React projects.
+  Separate shared fixtures, type assertions, consumer checks, and tooling tests;
+  configure source/test aliases and verify Chrome and Firefox provider profiles.
+
+
+
+### 🧹 Chores
+
+* remove mailmap ([22fc69f](https://github.com/addon-stack/storage/commit/22fc69f12c7826871cf179467364ce32cafbbdc3))
+
+
+* **tooling:** replace Biome with ESLint and standardize formatting ([f5cf340](https://github.com/addon-stack/storage/commit/f5cf34034bdf24e2bd2887568029a53ede28acee))
+
+
+
+
+### 🛠️ Refactoring
+
+* use source aliases for internal imports ([66b881d](https://github.com/addon-stack/storage/commit/66b881d4136bf01b2b1bcd1ad1f1573003b8c43d))
+
+  Replace parent-directory imports with ~/ paths across providers, helpers,
+  locking, the observer, and the React adapter. Keep neighboring imports relative.
+
+
+
+
+### 🙌 Contributors
+
+- [Anjey Tsibylskij](https://github.com/atldays) (@atldays) — commits: 10
+
 ## 🚀 Release `@addon-core/storage` v0.7.0 (2026-07-18)
 
 ### 💥 Breaking Changes
