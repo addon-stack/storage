@@ -8,6 +8,7 @@ export {
     storageSync,
 } from "./helpers";
 export {WebLockManager} from "./locking";
+export {StorageStatus} from "./observer/types";
 export {MonoStorage, SecureStorage, Storage} from "./providers";
 export type {
     SecureStorageHelperOptions,
@@ -16,6 +17,7 @@ export type {
 } from "./helpers";
 export type {SecureStorageOptions, StorageOptions} from "./providers";
 export type {
+    StorageBatchPatch,
     StorageBatchSnapshot,
     StorageBatchUpdateComparer,
     StorageBatchUpdateOptions,
@@ -28,6 +30,7 @@ export type {
     StorageProvider,
     StorageSetValue,
     StorageState,
+    StorageSubscribeOptions,
     StorageSubscriber,
     StorageUpdateComparer,
     StorageUpdateOptions,

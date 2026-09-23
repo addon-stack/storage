@@ -198,9 +198,9 @@ async function verifyConcreteSetTypes() {
 void verifyConcreteSetTypes;
 
 function verifyReactAdapterCompatibility() {
-    const provider: UseStorageProvider = storage;
+    const provider: UseStorageProvider<TypedState> = storage;
 
-    useStorage<"light" | "dark">({
+    useStorage({
         key: "theme",
         storage: provider,
         defaultValue: "light",
