@@ -325,10 +325,18 @@ export class StorageObserver<State extends StorageState = StorageState> {
         }
     }
 
+    private recover(): void {
+        this.failure = undefined;
+        this.connect();
+        // Every retained key may have missed events while the subscription was closed.
+        void this.read([...this.entries.keys()], false).catch(() => undefined);
+    }
+
     async mutate<Result>(
         keys: readonly (keyof State & string)[],
         operation: (provider: StorageObserverDriver<State>) => Promise<Result>
     ): Promise<Result> {
+        const needsRecovery = this.failure !== undefined;
         const release = this.retain(keys);
         const mutationId = ++this.mutationId;
         const entries = keys.map(key => this.entries.get(key) as Entry);
@@ -346,6 +354,10 @@ export class StorageObserver<State extends StorageState = StorageState> {
         this.notify();
 
         try {
+            if (needsRecovery) {
+                this.recover();
+            }
+
             return await operation(this.getProvider());
         } catch (error) {
             for (const entry of entries) {
@@ -354,12 +366,11 @@ export class StorageObserver<State extends StorageState = StorageState> {
                 }
             }
 
+            // Recover actual state after a potentially partial write. A read failure
+            // belongs to `error` and must not replace the original mutation error.
+            await this.refresh(keys).catch(() => undefined);
             throw error;
         } finally {
-            // Re-read actual storage, including partial writes. Read errors belong to
-            // `error`; they must not replace a mutation's result or original error.
-            await this.refresh(keys).catch(() => undefined);
-
             for (const entry of entries) {
                 entry.snapshot = {...entry.snapshot, pendingMutationCount: entry.snapshot.pendingMutationCount - 1};
             }
@@ -427,12 +438,15 @@ export class StorageObserver<State extends StorageState = StorageState> {
             subscribe: (listener: () => void) => {
                 const notify = () => listener();
                 this.listeners.add(notify);
-                // A new consumer retries a failed registration and refreshes every
-                // retained key that may have missed events while it was disconnected.
-                const retryKeys = this.failure ? [...new Set([...this.entries.keys(), ...keys])] : keys;
-                this.failure = undefined;
+                // Capture the previous failure so a first failed connection is not retried twice.
+                const needsRecovery = this.failure !== undefined;
                 const release = this.retain(keys);
-                void this.read(retryKeys, false).catch(() => undefined);
+
+                if (needsRecovery) {
+                    this.recover();
+                } else {
+                    void this.read(keys, false).catch(() => undefined);
+                }
 
                 return () => {
                     this.listeners.delete(notify);

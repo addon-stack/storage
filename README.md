@@ -981,10 +981,16 @@ page or background context through your application's messaging layer. The hook
 exposes the original error through the returned promise and `mutationError`.
 
 Mutations show confirmed storage data, without optimistic values or rollback.
-Their promises reject with the original provider error. After either success or
-failure, selected keys are re-read to reconcile actual state, including partial
-batch writes. A reconciliation read failure is exposed through `error` and does
-not replace the mutation's result or error. `isMutating` includes reconciliation.
+After success, the subscription updates selected values without an additional
+read. The mutation promise can resolve and `isMutating` become `false` before
+the event is delivered, particularly when secure values need to be decrypted.
+Use the result returned by `update()` when the caller needs its computed value;
+call `refresh()` when an explicit read of the selected keys is required.
+
+After failure, selected keys are re-read to recover actual state, including partial
+batch writes. The promise rejects with the original provider error. A recovery
+read failure is exposed through `error` and does not replace the mutation error.
+`isMutating` includes this recovery read.
 For a batch, `mutationError` is the first selected key's error in sorted key order;
 separate calls can be caught independently through their returned promises.
 
@@ -994,9 +1000,11 @@ not change readiness when reconciliation succeeds. Catch returned promises in ev
 handlers; the hook does not swallow operation failures.
 
 A newly mounted consumer retries failed reads for its selection and a failed shared
-subscription. Reconnecting a subscription also re-reads retained keys that may have
-missed events. Overlapping consumers share a pending retry. Persistent failures stay
-observable until another mount or an explicit `refresh()` retries them.
+subscription. A mutation also retries an already failed subscription before calling
+the provider. Reconnecting re-reads retained keys that may have missed events;
+overlapping consumers share a pending retry. Recovery failures are reported through
+`error` and do not replace the mutation's result. There is no automatic retry loop:
+another mount, mutation, or explicit `refresh()` can retry a failed subscription.
 
 Multiple consumers of the same provider share a subscription and in-flight reads
 for overlapping keys. Events update a selected batch together. A mixed native

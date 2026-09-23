@@ -2,7 +2,7 @@ import {deferred, flushMacrotask, waitFor} from "@tests/support/async";
 import {browser} from "@tests/support/browser";
 import {StorageStatus} from "~/index";
 import {StorageObserver, type StorageObserverScope} from "~/observer/index";
-import {Storage} from "~/providers";
+import {SecureStorage, Storage} from "~/providers";
 
 import type {StorageSubscribeOptions} from "~/types";
 
@@ -220,6 +220,93 @@ test("reconnects after subscription failure and ignores a read from the failed c
     expect(connect).toHaveBeenCalledTimes(2);
 });
 
+test("a mutation recovers a failed subscription and reads every retained key without overwriting newer events", async () => {
+    const provider = new Storage<State>();
+    await provider.set({theme: "light", count: 1});
+    const get = jest.spyOn(provider, "get");
+    const original = provider.subscribe.bind(provider);
+    let options: StorageSubscribeOptions | undefined;
+
+    const connect = jest.spyOn(provider, "subscribe").mockImplementation((listener, subscriptionOptions) => {
+        options = subscriptionOptions;
+
+        return original(listener, subscriptionOptions);
+    });
+
+    const observer = StorageObserver.get(provider);
+    const selection = observer.select(["theme", "count"]);
+    const other = observer.select(["count"]);
+    subscribe(selection);
+    subscribe(other);
+    await waitFor(() => expect(selection.snapshot().status).toBe(StorageStatus.Ready));
+    expect(get).toHaveBeenCalledTimes(1);
+    const failure = new Error("subscription closed");
+    options?.onError?.(failure);
+    expect(selection.snapshot()).toMatchObject({status: StorageStatus.Error, error: failure});
+    expect(browser.storage.onChanged.listenerCount()).toBe(0);
+
+    // This change is missed during the disconnection and is outside the mutation's keys.
+    await provider.set("count", 2);
+    const recovery = deferred<Partial<State>>();
+    get.mockReturnValueOnce(recovery.promise);
+
+    try {
+        await observer.mutate(["theme"], storage => storage.set("theme", "dark"));
+        expect(browser.storage.local.data).toEqual({theme: "dark", count: 2});
+        expect(connect).toHaveBeenCalledTimes(2);
+        expect(browser.storage.onChanged.listenerCount()).toBe(1);
+        await waitFor(() => expect(selection.snapshot().value.theme).toBe("dark"));
+        expect(get).toHaveBeenCalledTimes(2);
+        expect(get).toHaveBeenLastCalledWith(["theme", "count"]);
+
+        recovery.resolve({theme: "light", count: 2});
+
+        await waitFor(() => expect(selection.snapshot()).toMatchObject({
+            status: StorageStatus.Ready,
+            value: {theme: "dark", count: 2},
+            error: undefined,
+            mutationError: undefined,
+            isMutating: false,
+        }));
+
+        expect(other.snapshot()).toMatchObject({status: StorageStatus.Ready, value: {count: 2}, error: undefined});
+        await observer.mutate(["theme"], storage => storage.set("theme", "blue"));
+        await waitFor(() => expect(selection.snapshot().value.theme).toBe("blue"));
+        expect(get).toHaveBeenCalledTimes(2);
+        expect(connect).toHaveBeenCalledTimes(2);
+    } finally {
+        recovery.resolve({theme: "light", count: 2});
+    }
+});
+
+test("a persistent subscription failure gets one retry per mutation without changing the write result", async () => {
+    const provider = new Storage<State>();
+    const failure = new Error("cannot subscribe");
+
+    const connect = jest.spyOn(provider, "subscribe").mockImplementation(() => {
+        throw failure;
+    });
+
+    const get = jest.spyOn(provider, "get");
+    const observer = StorageObserver.get(provider);
+    const selection = observer.select(["theme"]);
+    subscribe(selection);
+    expect(connect).toHaveBeenCalledTimes(1);
+
+    await expect(observer.mutate(["theme"], storage => storage.set("theme", "dark"))).resolves.toBeUndefined();
+
+    expect(browser.storage.local.data.theme).toBe("dark");
+    expect(connect).toHaveBeenCalledTimes(2);
+    expect(get).not.toHaveBeenCalled();
+
+    expect(selection.snapshot()).toMatchObject({
+        status: StorageStatus.Error,
+        error: failure,
+        mutationError: undefined,
+        isMutating: false,
+    });
+});
+
 test("shares mutation state and reconciles a failed operation without replacing its error", async () => {
     const provider = new Storage<State>();
     const get = jest.spyOn(provider, "get");
@@ -261,4 +348,114 @@ test("shares mutation state and reconciles a failed operation without replacing 
         isMutating: false,
         mutationError: undefined,
     });
+});
+
+test.each(["plain", "secure", "mono", "secure-mono"])(
+    "%s mutations update shared snapshots through events without reconciliation reads", async kind => {
+        const provider = kind === "secure" ? SecureStorage.Local<State>({namespace: kind})
+            : kind === "secure-mono" ? SecureStorage.Local<State>({namespace: kind, key: "bucket"})
+                : Storage.Local<State>({namespace: kind, ...(kind === "mono" ? {key: "bucket"} : {})});
+
+        const get = jest.spyOn(provider, "get");
+        const observer = StorageObserver.get(provider);
+        const keys = ["theme", "count"] as const;
+        const first = observer.select(keys);
+        const second = observer.select(keys);
+        subscribe(first);
+        subscribe(second);
+        await waitFor(() => expect(first.snapshot().status).toBe(StorageStatus.Ready));
+        expect(get).toHaveBeenCalledTimes(1);
+
+        await observer.mutate(keys, storage => storage.set({theme: "dark", count: 1}));
+        await waitFor(() => expect(first.snapshot().value).toEqual({theme: "dark", count: 1}));
+        expect(second.snapshot().value).toEqual(first.snapshot().value);
+        expect(get).toHaveBeenCalledTimes(1);
+
+        const updated = await observer.mutate(keys, storage =>
+            storage.update(keys, previous => ({count: previous.count! + 1}))
+        );
+
+        expect(updated).toEqual({theme: "dark", count: 2});
+        await waitFor(() => expect(first.snapshot().value).toEqual(updated));
+        expect(second.snapshot().value).toEqual(updated);
+        expect(get).toHaveBeenCalledTimes(1);
+
+        // A no-op update emits no event and must still finish the mutation.
+        await expect(observer.mutate(keys, storage => storage.update(keys, () => ({})))).resolves.toEqual(updated);
+        expect(first.snapshot().isMutating).toBe(false);
+        expect(first.snapshot().value).toEqual(updated);
+        expect(get).toHaveBeenCalledTimes(1);
+
+        await observer.mutate(keys, storage => storage.remove([...keys]));
+        await waitFor(() => expect(first.snapshot().exists).toEqual({theme: false, count: false}));
+        expect(second.snapshot().value).toEqual({});
+        expect(first.snapshot().isMutating).toBe(false);
+        expect(get).toHaveBeenCalledTimes(1);
+    }
+);
+
+test("a successful mutation can finish before its subscription delivers the confirmed value", async () => {
+    const provider = new Storage<State>();
+    await provider.set("theme", "light");
+    const delivery = deferred();
+    const connect = provider.subscribe.bind(provider);
+
+    jest.spyOn(provider, "subscribe").mockImplementation((callback, options) => connect(async changes => {
+        await delivery.promise;
+        callback(changes);
+    }, options));
+
+    const get = jest.spyOn(provider, "get");
+    const observer = StorageObserver.get(provider);
+    const selection = observer.select(["theme"]);
+    subscribe(selection);
+    await waitFor(() => expect(selection.snapshot().value).toEqual({theme: "light"}));
+
+    try {
+        await observer.mutate(["theme"], storage => storage.set("theme", "dark"));
+
+        expect(selection.snapshot()).toMatchObject({
+            status: StorageStatus.Ready,
+            value: {theme: "light"},
+            isMutating: false,
+            mutationError: undefined,
+        });
+
+        expect(browser.storage.local.data.theme).toBe("dark");
+        expect(get).toHaveBeenCalledTimes(1);
+        delivery.resolve();
+        await waitFor(() => expect(selection.snapshot().value).toEqual({theme: "dark"}));
+        expect(get).toHaveBeenCalledTimes(1);
+    } finally {
+        delivery.resolve();
+    }
+});
+
+test("reconciliation read failures preserve the original mutation error and confirmed data", async () => {
+    const provider = new Storage<State>();
+    await provider.set("theme", "light");
+    const observer = StorageObserver.get(provider);
+    const selection = observer.select(["theme"]);
+    subscribe(selection);
+    await waitFor(() => expect(selection.snapshot().value).toEqual({theme: "light"}));
+    const writeError = new Error("write failed");
+    const readError = new Error("recovery read failed");
+    jest.spyOn(provider, "set").mockRejectedValueOnce(writeError);
+    browser.storage.local.get.failNext(readError);
+
+    await expect(observer.mutate(["theme"], storage => storage.set("theme", "dark"))).rejects.toBe(writeError);
+
+    expect(selection.snapshot()).toMatchObject({
+        status: StorageStatus.Error,
+        value: {theme: "light"},
+        exists: {theme: true},
+        error: readError,
+        mutationError: writeError,
+        isMutating: false,
+    });
+
+    expect(selection.snapshot().mutationError).toBe(writeError);
+    await observer.refresh(["theme"]);
+    expect(selection.snapshot().status).toBe(StorageStatus.Ready);
+    expect(selection.snapshot().error).toBeUndefined();
 });
