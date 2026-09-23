@@ -8,6 +8,7 @@ import {
     assertStorageKey,
     assertStorageNamespace,
     assertStorageSetValue,
+    copyRecord,
     copyRecordWithoutPrototype,
     createRecord,
     hasOwn,
@@ -330,17 +331,8 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
     }
 
     protected async getStoredItems(keys: string | string[] | null): Promise<Record<string, unknown>> {
-        return await callWithPromise(resolve => {
-            this.storage.get(keys, result => {
-                const items = createRecord<Record<string, unknown>>();
-
-                for (const [key, value] of Object.entries(result)) {
-                    setRecordValue(items, key, value);
-                }
-
-                resolve(items);
-            });
-        });
+        const result = await callWithPromise<Record<string, unknown>>(resolve => this.storage.get(keys, resolve));
+        return copyRecord(result);
     }
 
     public async remove<K extends keyof T>(keys: K | K[], options?: StorageLockOptions): Promise<void> {
