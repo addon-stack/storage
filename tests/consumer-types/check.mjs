@@ -30,11 +30,11 @@ try {
     const minimum = process.env.STORAGE_TEST_MIN_TYPESCRIPT ?? "5.4.5";
 
     const fixtures = ["react.types.ts", "react-exact.types.ts"].map(file =>
-        readFileSync(join(root, "tests", file), "utf8")
-            .replaceAll('"../src/adapters/react/types"', '"@addon-core/storage/react"')
-            .replaceAll('"../src/adapters/react"', '"@addon-core/storage/react"')
-            .replaceAll('"../src/types"', '"@addon-core/storage"')
-            .replaceAll('"../src"', '"@addon-core/storage"')
+        readFileSync(join(root, "tests/types", file), "utf8")
+            .replaceAll('"~/adapters/react/types"', '"@addon-core/storage/react"')
+            .replaceAll('"~/adapters/react"', '"@addon-core/storage/react"')
+            .replaceAll('"~/types"', '"@addon-core/storage"')
+            .replaceAll('"~"', '"@addon-core/storage"')
     );
 
     for (const react of ["18", "19"]) {

@@ -46,6 +46,7 @@ describe("import groups", () => {
         ["src/nested/deep/module/import-example.ts", "../../../types", "../../types"],
         ["tests/import-example.ts", "../src/types", "../types"],
         ["tests/nested/import-example.ts", "../../src/types.js", "../types"],
+        ["tests/integration/import-example.ts", "~/types", "~/observer/types"],
     ])("recognizes root types from %s without treating other types modules as root", async (filePath, rootImport, otherImport) => {
         const usage = "export type Types = [Root, Local, Other];\nexport const value = create;";
         const source = `import type {Root} from "${rootImport}";\nimport type {Local} from "./types";\nimport type {Other} from "${otherImport}";\nimport {create} from "./create";\n\n${usage}\n`;
@@ -60,8 +61,8 @@ describe("import groups", () => {
     });
 
     test("places ./types last among code imports for files in src itself", async () => {
-        const source = 'import {type State, Status} from "./types";\nimport type {Observer} from "./observer/types";\nimport {helper} from "../tests/helpers/async";\nimport "./styles.css";\n\nexport type Types = [State, Observer];\nexport const values = [Status, helper];\n';
-        const expected = 'import type {Observer} from "./observer/types";\n\nimport {helper} from "../tests/helpers/async";\n\nimport {type State, Status} from "./types";\n\nimport "./styles.css";\n\nexport type Types = [State, Observer];\nexport const values = [Status, helper];\n';
+        const source = 'import {type State, Status} from "./types";\nimport type {Observer} from "./observer/types";\nimport {helper} from "../tests/support/async";\nimport "./styles.css";\n\nexport type Types = [State, Observer];\nexport const values = [Status, helper];\n';
+        const expected = 'import type {Observer} from "./observer/types";\n\nimport {helper} from "../tests/support/async";\n\nimport {type State, Status} from "./types";\n\nimport "./styles.css";\n\nexport type Types = [State, Observer];\nexport const values = [Status, helper];\n';
         const [fixed] = await fixer.lintText(source, {filePath});
         expect(fixed.messages).toEqual([]);
         expect(fixed.output).toBe(expected);
@@ -77,6 +78,26 @@ describe("import groups", () => {
         expect(groups[0].split("\n")).toEqual(['import {readFile} from "fs/promises";', 'import {join} from "node:path";']);
         expect(groups[1].split("\n")).toEqual(expect.arrayContaining(['import {jsx} from "react/jsx-runtime";', 'import {createRoot} from "react-dom/client";']));
         expect(groups[2].split("\n")).toEqual(['import {browserPath} from "path-browserify";', 'import {form} from "react-hook-form";']);
+    });
+
+    test("groups aliases as internal modules without capturing similarly named packages", async () => {
+        const groups = [
+            'import {external} from "@source-tools/core";\nimport {fixture} from "@tests-extra/fixture";',
+            'import {local} from "./local";',
+            'import {browser} from "@tests/support/browser";\nimport {Storage} from "~";\nimport {createRecord} from "~/utils";',
+            'import type {StorageState} from "~/types";',
+        ];
+
+        const usage = "export type State = StorageState;\nexport const values = [external, fixture, local, Storage, createRecord, browser];";
+        const source = `${[...groups].reverse().join("\n")}\n\n${usage}\n`;
+        const expected = `${groups.join("\n\n")}\n\n${usage}\n`;
+        const [fixed] = await fixer.lintText(source, {filePath: "tests/integration/import-example.ts"});
+        expect(fixed.messages).toEqual([]);
+        expect(fixed.output).toBe(expected);
+
+        const [again] = await fixer.lintText(expected, {filePath: "tests/integration/import-example.ts"});
+        expect(again.messages).toEqual([]);
+        expect(again.output).toBeUndefined();
     });
 
     test("keeps side-effect order within a group and sends package styles to the asset group", async () => {

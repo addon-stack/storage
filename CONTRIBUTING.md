@@ -131,7 +131,8 @@ Formatting and lint rules:
 - Import groups (`project/import-order`, based on `simple-import-sort`), separated by one blank line:
   Node.js builtins → React and React DOM → external packages → current-directory dependencies (`./...`) →
   other internal dependencies → current-directory `./types` → root `src/types` → styles and assets.
-  Groups follow the source module, including mixed type/value imports. Root types are recognized relative to each file.
+  Groups follow the source module, including mixed type/value imports. `~` and `@tests` aliases belong to internal
+  dependencies; root types are recognized through either relative imports or `~/types`.
 - Imports from the same module are combined (`project/no-duplicate-imports`, based on `import-x/no-duplicates`), with inline `type` specifiers for types:
   `import {type StorageObserverSnapshot, StorageStatus} from "./types";`.
   This applies to any imported values, including functions, constants, classes, and enums.
@@ -140,7 +141,7 @@ Formatting and lint rules:
 - Recommended JavaScript/TypeScript checks. Explicit `any` is allowed; unused parameters, catch bindings, and
   variables prefixed with `_` are allowed. Other unused bindings are reported rather than silently deleted.
 - Compile-only fixtures (`tests/**/*.types.ts`) allow unused bindings and expressions used as type assertions.
-  The release policy test may require its CommonJS `.release-it.cjs` configuration. These exceptions do not apply to source files.
+  These exceptions do not apply to source files.
 - JSON/JSONC use two-space indentation and expanded nonempty objects/arrays. JSON is strict; JSONC permits comments.
 - A 120-column width remains a readability guideline. ESLint does not wrap arbitrary long expressions automatically.
 
@@ -187,21 +188,64 @@ Project layout:
 - Build artifacts: `dist/`
 
 ## Running tests
-Unit tests use Jest + SWC with jsdom and WebExtensions mocks. Tooling tests run separately in Node's ESM environment
-using `jest.tooling.config.js`; `test:tooling` supplies the required `--experimental-vm-modules` flag.
-- Unit tests: `npm test` (Jest arguments can be passed after `--`).
-- Formatting, naming, and Git-hook regression tests: `npm run test:tooling`.
-- Both suites, including the pre-commit checks: `npm run test:all`.
-- CI mode, including unit coverage and tooling tests: `npm run test:ci`.
-- Unit tests related to specific files: `npm run test:related -- src/watch.ts`.
-- Published consumer declarations: `npm run test:consumer-types`.
 
-Hook tests use temporary Git clones to verify staging, partial staging, rollback, and ignored files without changing
-the current checkout's Git state. Configuration tests also check that a second formatting pass makes no further edits.
+Runtime tests use Jest + SWC. `jest.config.ts` defines three projects: `unit` and `integration` run in Node,
+while `react` runs in jsdom. Tooling and release-policy tests run in Node's native ESM environment through
+`jest.tooling.config.js`; `test:tooling` supplies the required `--experimental-vm-modules` flag.
+
+Test layout:
+- `tests/unit/`: batch planning, watch dispatch, and Web Locks coordination.
+- `tests/integration/providers/`: real providers, grouped by behavior, plus shared Chrome/Firefox profile contracts.
+- `tests/integration/helpers/`, `observer/`, `adapters/react/`: public helpers, observer lifecycle, and React hooks.
+- `tests/support/`: the browser harness, Web Locks simulator, async gates, and encrypted fixtures.
+- `tests/setup/`: environment installation and cleanup.
+- `tests/types/`: compile-only fixtures; `tsconfig.exact.json` checks exact optional properties separately.
+- `tests/consumer-types/`: installs the packed package and checks declarations with TypeScript 5.4/current and React 18/19.
+- `tests/tooling/`: lint rules, Git hooks, and release policy.
+
+Commands:
+- All runtime projects: `npm test` (Jest arguments can be passed after `--`).
+- A project: `npm test -- --selectProjects react` (or `unit`, `integration`).
+- A file: `npm test -- --runTestsByPath tests/integration/providers/storage/crud.test.ts`.
+- Tooling and release-policy tests: `npm run test:tooling`.
+- Runtime and tooling suites: `npm run test:all`.
+- CI mode with source coverage: `npm run test:ci`.
+- Tests related to source files: `npm run test:related -- src/watch.ts`.
+- Published consumer declarations: `npm run test:consumer-types`.
+- Production, test, and exact-optional type checks: `npm run typecheck`.
+
+Imports use aliases configured in TypeScript and the runtime Jest projects:
+- `~` resolves to `src/index.ts`; `~/*` resolves within `src/`.
+- `@tests/*` resolves within `tests/`, for example `@tests/support/browser`.
+- Keep `./...` for neighboring modules; use aliases instead of climbing parent directories in source code and tests.
+- Consumer declaration checks replace source aliases with published package entry points. Plain Node tooling scripts
+  keep Node-compatible imports; TypeScript path mappings do not configure Node's runtime resolver.
+
+```ts
+import Storage from "~/providers/Storage";
+import {browser} from "@tests/support/browser";
+
+import type {StorageProvider} from "~/types";
+```
 
 Authoring tests:
-- Prefer black-box tests for the public API (@addon-core/storage, providers, React adapter).
-- Mock `chrome.storage` if needed (e.g., `jest-webextension-mock`).
+- Exercise real providers and the real `@addon-core/browser` wrapper. Browser API simulation comes exclusively from
+  `@addon-core/browser/testing`; do not add a second storage mock or patch provider reads to accommodate one.
+- Import `browser` from `tests/support/browser.ts` for state inspection, call records, `failNext`, or exceptional raw events.
+  Normal writes automatically emit `onChanged`; never emit the same event manually after a write.
+- Harness controls are not Jest mocks. Assert `method.calls`, including `args`, `callback`, and `sequence` when relevant.
+  `setResult`, `queueResult`, and `setImplementation` replace normal behavior; they do not persist data or emit changes.
+- Supply managed policy data through constructor seeds, for example with `withBrowser`; managed writes must reject.
+- Use real Web Crypto. Ciphertext fixtures use the public SecureStorage API. Targeted spies may control crypto failures
+  or completion order; they must not replace encryption for the whole suite.
+- Use deferred promises for races and contention. Use fake timers for timeout behavior. Native `flushChanges()` waits
+  for returned listener work; detached provider queues need a consumer completion signal or a condition-based assertion.
+- Dispose subscriptions and resolve controlled work. RTL unmounts hooks and the observer releases them before the next
+  test resets the harness. The main harness keeps stable facade identity for the shared default observer.
+- Chrome/Firefox profiles are testkit simulations, not proof of behavior in a real browser.
+
+Hook tests use temporary Git clones to verify staging, partial staging, rollback, and ignored files without changing
+this checkout's Git state. Formatting checks also verify that a second pass makes no further edits.
 
 ## Pull requests
 Checklist for contributors:

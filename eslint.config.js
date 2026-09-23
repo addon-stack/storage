@@ -129,13 +129,6 @@ export default tseslint.config(
             "@typescript-eslint/no-unused-expressions": "off",
         },
     },
-    {
-        files: ["tests/release-it.test.ts"],
-        // The release configuration is CommonJS and is exercised by the existing SWC/Jest runner.
-        rules: {
-            "@typescript-eslint/no-require-imports": ["error", {allow: ["^\\.\\./\\.release-it\\.cjs$"]}],
-        },
-    },
     ...jsonc.configs["flat/recommended-with-jsonc"],
     {
         files: jsonFiles,

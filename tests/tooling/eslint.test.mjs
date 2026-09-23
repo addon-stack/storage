@@ -149,11 +149,11 @@ describe("ESLint project configuration", () => {
         expect(await checker.isPathIgnored(filePath)).toBe(true);
     });
 
-    test.each(["src/providers/AbstractStorage.ts", "src/adapters/react/use-storage.test.ts", "tests/batch.types.ts"])("does not ignore source, unit tests, or type fixtures: %s", async filePath => {
+    test.each(["src/providers/AbstractStorage.ts", "tests/integration/adapters/react/use-storage.test.ts", "tests/types/batch.types.ts"])("does not ignore source, unit tests, or type fixtures: %s", async filePath => {
         expect(await checker.isPathIgnored(filePath)).toBe(false);
     });
 
-    test.each(["tests/batch.types.ts", "tests/nested/example.types.ts"])("preserves compile-only assertions in %s", async filePath => {
+    test.each(["tests/types/batch.types.ts", "tests/types/nested/example.types.ts"])("preserves compile-only assertions in %s", async filePath => {
         const source = "declare const value: string;\ntype Proof = typeof value;\nvalue.length;\n";
         const [result] = await fixer.lintText(source, {filePath});
         expect(result.messages).toEqual([]);
@@ -167,16 +167,16 @@ describe("ESLint project configuration", () => {
         expect(result.messages.some(message => message.ruleId === "@typescript-eslint/no-unused-expressions")).toBe(true);
     });
 
-    test("allows only the release configuration require in its policy test", async () => {
-        const allowed = 'export const policy = require("../.release-it.cjs");\n';
-        const [release] = await checker.lintText(allowed, {filePath: "tests/release-it.test.ts"});
+    test("uses an ESM import for release policy without a TypeScript require exception", async () => {
+        const source = 'import config from "../../.release-it.cjs";\n\nexport const policy = config;\n';
+        const [release] = await checker.lintText(source, {filePath: "tests/tooling/release-it.test.mjs"});
         expect(release.messages).toEqual([]);
 
-        const [otherModule] = await checker.lintText('export const value = require("node:fs");\n', {filePath: "tests/release-it.test.ts"});
-        expect(otherModule.messages.some(message => message.ruleId === "@typescript-eslint/no-require-imports")).toBe(true);
+        const [legacy] = await checker.lintText('export const policy = require("../../.release-it.cjs");\n', {
+            filePath: "tests/unit/release-it.test.ts",
+        });
 
-        const [otherFile] = await checker.lintText(allowed, {filePath: "tests/other.test.ts"});
-        expect(otherFile.messages.some(message => message.ruleId === "@typescript-eslint/no-require-imports")).toBe(true);
+        expect(legacy.messages.some(message => message.ruleId === "@typescript-eslint/no-require-imports")).toBe(true);
     });
 
     test.each(["src/module-name.ts", "src/api.d.ts", "src/module-name.test.ts", "src/Example.test.ts", "src/Example.integration.test.ts", "tests/module-name.spec.mjs", "tsup.config.ts"])("accepts ordinary/test filename %s", async filePath => {

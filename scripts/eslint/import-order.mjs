@@ -32,11 +32,11 @@ export default {
             // Dependencies in the current directory.
             ["^\\u0000?\\.(?:/|\\u0000?$)"],
             // Other internal dependencies.
-            ["^"],
+            ["^", "^\\u0000?(?:~|@tests)(?=/|\\u0000?$)"],
             // Local types. In src itself, ./types belongs to the root types group below.
             [rootTypesImport === "./types" ? "(?!)" : `^\\u0000?\\./types${moduleEnding}`],
             // Root src/types, relative to the file being linted.
-            [`^\\u0000?${escapePattern(rootTypesImport)}${moduleEnding}`],
+            [`^\\u0000?(?:${escapePattern(rootTypesImport)}|~/types)${moduleEnding}`],
             // Styles and assets, including query strings such as ?url.
             ["^\\u0000?.+\\.(?:css|less|sass|scss|styl|svg|png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|eot|mp3|mp4|webm|wav|ogg)(?:\\?[^\\u0000]*)?\\u0000?$"],
         ];
