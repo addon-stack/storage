@@ -9,11 +9,13 @@ test.each([
 ] as const)("preserves runtime.lastError on %s reads, including asynchronous callbacks", async (_mode, read) => {
     const storage = new Storage();
     const message = "Storage backend is unavailable";
+
     for (const asynchronous of [false, true]) {
         jest.spyOn(chrome.storage.local, "get").mockImplementationOnce(((_keys: unknown, callback: (result: unknown) => void) => {
             const fail = () => {
                 const descriptor = Object.getOwnPropertyDescriptor(chrome.runtime, "lastError");
                 Object.defineProperty(chrome.runtime, "lastError", {value: {message}, configurable: true});
+
                 try {
                     callback(undefined);
                 } finally {
@@ -21,6 +23,7 @@ test.each([
                     else Reflect.deleteProperty(chrome.runtime, "lastError");
                 }
             };
+
             if (asynchronous) queueMicrotask(fail);
             else fail();
         }) as typeof chrome.storage.local.get);

@@ -1,5 +1,6 @@
-import type {StorageBatchPatch, StorageBatchUpdater} from "../src/types";
 import type {UseStorageBatchReturnValue} from "../src/adapters/react/types";
+
+import type {StorageBatchPatch, StorageBatchUpdater} from "../src/types";
 
 type State = {count: number; theme?: "light" | "dark"; language: string};
 
@@ -20,4 +21,5 @@ function verifyExactOptionalProperties(hook: UseStorageBatchReturnValue<State, "
     // @ts-expect-error update cannot modify an unselected key
     void hook.update(() => ({count: 1, language: "en"}));
 }
+
 void verifyExactOptionalProperties;

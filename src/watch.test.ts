@@ -1,11 +1,13 @@
+import {watchChanges} from "./watch";
+
+import {captureUnhandledErrors} from "../tests/helpers/async";
+
 import type {
     StorageChanges,
     StorageSubscriber,
     StorageWatchKeyCallback,
     StorageWatchOptions,
 } from "./types";
-import {watchChanges} from "./watch";
-import {captureUnhandledErrors} from "../tests/helpers/async";
 
 interface WatchState {
     first?: string;
@@ -15,6 +17,7 @@ interface WatchState {
 const createSubscription = () => {
     let emit: StorageSubscriber<WatchState> = () => undefined;
     const unsubscribe = jest.fn();
+
     const subscribe = jest.fn((callback: StorageSubscriber<WatchState>) => {
         emit = callback;
 
@@ -32,6 +35,7 @@ describe("watchChanges", () => {
     test("projects each changed key onto a function watcher", () => {
         const subscription = createSubscription();
         const watcher = jest.fn();
+
         const stop = watchChanges(
             subscription.subscribe,
             watcher as StorageWatchOptions<WatchState>
@@ -107,6 +111,7 @@ describe("watchChanges", () => {
             const subscription = createSubscription();
             const callbackError = new Error("sync watcher failure");
             const secondHandler = jest.fn();
+
             const stop = watchChanges(subscription.subscribe, {
                 first: () => {
                     throw callbackError;
@@ -136,6 +141,7 @@ describe("watchChanges", () => {
             const subscription = createSubscription();
             const callbackError = new Error("async watcher failure");
             const secondHandler = jest.fn();
+
             const stop = watchChanges(subscription.subscribe, {
                 first: () => Promise.reject(callbackError),
                 second: secondHandler,

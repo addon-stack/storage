@@ -1,8 +1,9 @@
 import MonoStorage from "./MonoStorage";
 import SecureStorage from "./SecureStorage";
 import Storage from "./Storage";
-import {StorageCorruptionError} from "../errors";
+
 import {captureUnhandledErrors, flushMacrotask} from "../../tests/helpers/async";
+import {StorageCorruptionError} from "../errors";
 
 interface BucketState {
     a?: number;
@@ -24,6 +25,7 @@ beforeEach(async () => {
     // Patch .get due to jest-webextension-mock limitation on chrome.storage.get(key)
     // Storage: use storageLocalGet to fetch specific key reliably in tests
     const baseGet = base.get.bind(base);
+
     base.get = (async (k: any) => {
         try {
             // Use helper to accurately read the specific full key from mock storage
@@ -36,9 +38,11 @@ beforeEach(async () => {
 
     // SecureStorage: we need decrypted value; derive from getAll() which decrypts
     const secureGet = secureBase.get.bind(secureBase);
+
     secureBase.get = (async (k: any) => {
         try {
             const all = await secureBase.getAll();
+
             return (all as any)[k];
         } catch {
             return secureGet(k);
@@ -122,6 +126,7 @@ test("batch set snapshots getter values once before locking the bucket", async (
         enumerable: true,
         get: () => {
             reads += 1;
+
             return reads === 1 ? 1 : undefined;
         },
     });
@@ -152,6 +157,7 @@ describe("batch overloads", () => {
         await mono.set({a: 1, b: 2, c: "ready"});
 
         expect(setSpy).toHaveBeenCalledTimes(1);
+
         expect(setSpy).toHaveBeenCalledWith(
             {"feature:bucket": {a: 1, b: 2, c: "ready"}},
             expect.any(Function)
@@ -299,10 +305,12 @@ describe("batch overloads", () => {
         await Promise.all([
             mono.update(["a", "b"] as const, async prev => {
                 await new Promise(resolve => setTimeout(resolve, 10));
+
                 return {a: (prev.a ?? 0) + 1, b: Number(prev.b ?? 0) + 1};
             }),
             mono.update(["b", "a"] as const, async prev => {
                 await new Promise(resolve => setTimeout(resolve, 10));
+
                 return {a: (prev.a ?? 0) + 1, b: Number(prev.b ?? 0) + 1};
             }),
         ]);
@@ -357,10 +365,12 @@ test("update serializes concurrent bucket mutations", async () => {
     await Promise.all([
         mono.update("a", async prev => {
             await new Promise(resolve => setTimeout(resolve, 10));
+
             return (prev ?? 0) + 1;
         }),
         mono.update("a", async prev => {
             await new Promise(resolve => setTimeout(resolve, 10));
+
             return (prev ?? 0) + 1;
         }),
     ]);
@@ -476,6 +486,7 @@ describe("watch and subscribe", () => {
         await flushMacrotask();
 
         expect(callback).toHaveBeenCalledTimes(1);
+
         expect(callback).toHaveBeenCalledWith({
             a: {oldValue: 1, newValue: 2},
             c: {oldValue: undefined, newValue: "created"},

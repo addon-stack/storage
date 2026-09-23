@@ -1,4 +1,5 @@
 import type {StorageObserverDriver, StorageStatus} from "../../observer/types";
+
 import type {
     StorageBatchUpdateOptions,
     StorageBatchUpdater,

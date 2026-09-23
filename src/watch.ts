@@ -1,4 +1,5 @@
 import {hasOwn, invokeCallback} from "./utils";
+
 import type {StorageState, StorageSubscriber, StorageWatchOptions} from "./types";
 
 /**

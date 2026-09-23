@@ -16,6 +16,7 @@ function verifyReactTypes() {
     const raw = useStorage<number>({key: "count"});
     const inferred = useStorage({key: "theme", defaultValue: "light"});
     const localBatch = useStorage({keys: ["a", "b"]});
+
     const proofs: [
         Expect<Equal<typeof theme.value, "light" | "dark" | undefined>>,
         Expect<Equal<typeof themeWithDefault.value, "light" | "dark">>,
@@ -26,8 +27,9 @@ function verifyReactTypes() {
         Expect<Equal<typeof nullable.value, string | null>>,
         Expect<Equal<typeof raw.value, number | undefined>>,
         Expect<Equal<typeof inferred.value, string>>,
-        Expect<Equal<typeof localBatch.exists.a, boolean | undefined>>
+        Expect<Equal<typeof localBatch.exists.a, boolean | undefined>>,
     ] = [true, true, true, true, true, true, true, true, true, true];
+
     void proofs;
     const statusProof: Expect<Equal<typeof theme.status, StorageStatus>> = true;
     const textProof: Expect<Equal<`${StorageStatus}`, "loading" | "ready" | "error">> = true;
@@ -89,6 +91,7 @@ function verifyReactTypes() {
     // @ts-expect-error no positional API
     useStorage("theme", "light");
 }
+
 void verifyReactTypes;
 
 // Public option types must be usable as parameters of forwarding hooks.
@@ -96,25 +99,33 @@ function useSingleOptions(options: import("../src/adapters/react").UseStorageSin
     const result = useStorage(options);
     const proof: Expect<Equal<typeof result.value, State["theme"] | undefined>> = true;
     void proof;
+
     return result;
 }
+
 function useBatchOptions(options: import("../src/adapters/react").UseStorageBatchOptions<State, "theme" | "count">) {
     const result = useStorage(options);
     const proof: Expect<Equal<typeof result.value.count, number | undefined>> = true;
     void proof;
     // @ts-expect-error a forwarding batch hook still cannot write unselected fields
     void result.set({language: "ru"});
+
     return result;
 }
+
 function useDynamicOptions(options: import("../src/adapters/react").UseStorageOptions<State, "theme">) {
     const result = useStorage(options);
+
     const proof: Expect<Equal<typeof result,
         import("../src/adapters/react").UseStorageReturnValue<State["theme"]> |
         import("../src/adapters/react").UseStorageBatchReturnValue<State, "theme">
     >> = true;
+
     void proof;
+
     return result;
 }
+
 function verifyPreparedOptions() {
     const single = {key: "theme", storage, defaultValue: "light" as const} satisfies import("../src/adapters/react").UseStorageSingleOptions<State>;
     const batch = {keys: ["theme", "count"] as const, storage} satisfies import("../src/adapters/react").UseStorageBatchOptions<State>;
@@ -125,6 +136,7 @@ function verifyPreparedOptions() {
     const explicitSingle = useStorage<State, "theme">({key: "theme"});
     const explicitBatch = useStorage<State, readonly ["theme"]>({keys: ["theme"]});
     const inferredBatch = useStorage({keys: ["theme", "count"], defaultValue: {theme: "light", count: 0}});
+
     const proofs: [
         Expect<Equal<typeof one.value, "light" | "dark">>,
         Expect<Equal<typeof many.value.count, number | undefined>>,
@@ -132,8 +144,9 @@ function verifyPreparedOptions() {
         Expect<Equal<typeof explicitSingle.value, State["theme"] | undefined>>,
         Expect<Equal<typeof explicitBatch.value.theme, State["theme"] | undefined>>,
         Expect<Equal<typeof inferredBatch.value.theme, string>>,
-        Expect<Equal<typeof inferredBatch.value.count, number>>
+        Expect<Equal<typeof inferredBatch.value.count, number>>,
     ] = [true, true, true, true, true, true, true];
+
     void proofs;
     // @ts-expect-error explicit schema single defaults must not widen the schema
     useStorage<State, "theme">({key: "theme", defaultValue: "blue"});
@@ -142,6 +155,7 @@ function verifyPreparedOptions() {
     // @ts-expect-error local defaults cannot add unselected properties
     useStorage({keys: ["theme"], defaultValue: {theme: "light", count: 0}});
 }
+
 void useSingleOptions;
 void useBatchOptions;
 void useDynamicOptions;
@@ -149,24 +163,29 @@ void verifyPreparedOptions;
 
 function verifyOptionalDefaults(
     single: {storage: typeof storage; key: "theme"; defaultValue?: "light"},
-    batch: {storage: typeof storage; keys: readonly ["theme", "count"]; defaultValue?: {theme: "light"; count: number}},
+    batch: {storage: typeof storage; keys: readonly ["theme", "count"]; defaultValue?: {theme: "light"; count: number}}
 ) {
     const one = useStorage(single);
     const many = useStorage(batch);
+
     const proofs: [
         Expect<Equal<typeof one.value, State["theme"] | undefined>>,
-        Expect<Equal<typeof many.value.count, number | undefined>>
+        Expect<Equal<typeof many.value.count, number | undefined>>,
     ] = [true, true];
+
     void proofs;
     useStorage<State, "theme">({key: "theme", defaultValue: "light"});
     useStorage<State, readonly ["theme"]>({keys: ["theme"], defaultValue: {theme: "light"}});
 }
+
 function useGenericSingle<S extends Record<string, unknown>, K extends keyof S & string>(
-    options: import("../src/adapters/react").UseStorageSingleOptions<S, K>,
+    options: import("../src/adapters/react").UseStorageSingleOptions<S, K>
 ) {
     const result = useStorage(options);
     const value: S[K] | undefined = result.value;
+
     return value;
 }
+
 void verifyOptionalDefaults;
 void useGenericSingle;

@@ -1,4 +1,4 @@
-import {WebLockManager, type StorageLocker} from "../src";
+import {type StorageLocker, WebLockManager} from "../src";
 
 const locker: StorageLocker = new WebLockManager();
 

@@ -1,30 +1,38 @@
+import {StorageObserver, type StorageObserverScope} from "./index";
+
 import {flushMacrotask} from "../../tests/helpers/async";
 import {StorageStatus} from "../index";
 import Storage from "../providers/Storage";
-import {StorageObserver} from "./index";
+
 import type {StorageSubscribeOptions} from "../types";
-import type {StorageObserverScope} from "./index";
 
 // These tests must work without loading a frontend runtime, directly or transitively.
 jest.mock("react", () => {
     throw new Error("StorageObserver must not depend on React");
 });
+
 jest.mock("react-dom", () => {
     throw new Error("StorageObserver must not depend on React DOM");
 });
 
 type State = {theme: string | null; count: number};
+
 const deferred = <T>() => {
     let resolve!: (value: T) => void;
+
     const promise = new Promise<T>(yes => {
         resolve = yes;
     });
+
     return {promise, resolve};
 };
+
 const releases: (() => void)[] = [];
+
 const subscribe = (selection: StorageObserverScope, listener = jest.fn()) => {
     const release = selection.subscribe(listener);
     releases.push(release);
+
     return release;
 };
 
@@ -33,10 +41,12 @@ beforeEach(async () => {
     global.resetStorageChangeListeners();
     jest.clearAllMocks();
 });
+
 afterEach(async () => {
     for (const release of releases.splice(0)) {
         release();
     }
+
     await flushMacrotask();
     jest.restoreAllMocks();
 });
@@ -54,6 +64,7 @@ test("shares observers by provider identity and initializes the default provider
     subscribe(selection);
     await flushMacrotask();
     expect(local).toHaveBeenCalledTimes(1);
+
     expect(selection.snapshot()).toMatchObject({
         status: StorageStatus.Ready,
         value: {},
@@ -74,20 +85,24 @@ test("independent consumers share one read and subscription, with stable snapsho
     expect(connect).not.toHaveBeenCalled();
     subscribe(first, listener);
     subscribe(second);
+
     expect(first.snapshot()).toMatchObject({
         status: StorageStatus.Loading,
         exists: {theme: undefined, count: undefined},
     });
+
     read.resolve({theme: null});
     await flushMacrotask();
     expect(get).toHaveBeenCalledTimes(1);
     expect(connect).toHaveBeenCalledTimes(1);
     const snapshot = first.snapshot();
+
     expect(snapshot).toMatchObject({
         status: StorageStatus.Ready,
         value: {theme: null},
         exists: {theme: true, count: false},
     });
+
     expect(second.snapshot().value).toEqual({theme: null});
     expect(first.snapshot()).toBe(snapshot);
     listener.mockClear();
@@ -120,11 +135,13 @@ test("same-turn reconnect reuses pending work and the last unsubscribe releases 
     lastRelease();
     await flushMacrotask();
     expect(chrome.storage.onChanged.removeListener).toHaveBeenCalledTimes(1);
+
     expect(selection.snapshot()).toMatchObject({
         status: StorageStatus.Loading,
         value: {},
         exists: {theme: undefined},
     });
+
     subscribe(selection);
     await flushMacrotask();
     expect(get).toHaveBeenCalledTimes(2);
@@ -143,6 +160,7 @@ test("a deletion event wins over an older pending read", async () => {
     await flushMacrotask();
     read.resolve({theme: "dark", count: 2});
     await flushMacrotask();
+
     expect(selection.snapshot()).toMatchObject({
         status: StorageStatus.Ready,
         value: {count: 2},
@@ -163,11 +181,13 @@ test("a new consumer retries failed reads while sharing the existing subscriptio
     const second = observer.select(["theme"]);
     subscribe(second);
     await flushMacrotask();
+
     expect(first.snapshot()).toMatchObject({
         status: StorageStatus.Ready,
         error: undefined,
         value: {theme: "dark"},
     });
+
     expect(second.snapshot().value).toEqual({theme: "dark"});
     expect(get).toHaveBeenCalledTimes(2);
     expect(connect).toHaveBeenCalledTimes(1);
@@ -179,10 +199,13 @@ test("reconnects after subscription failure and ignores a read from the failed c
     const get = jest.spyOn(provider, "get").mockReturnValueOnce(stale.promise).mockResolvedValue({theme: "fresh"});
     const original = provider.subscribe.bind(provider);
     let options: StorageSubscribeOptions | undefined;
+
     const connect = jest.spyOn(provider, "subscribe").mockImplementation((listener, subscriptionOptions) => {
         options = subscriptionOptions;
+
         return original(listener, subscriptionOptions);
     });
+
     const observer = StorageObserver.get(provider);
     const first = observer.select(["theme"]);
     subscribe(first);
@@ -193,11 +216,13 @@ test("reconnects after subscription failure and ignores a read from the failed c
     const second = observer.select(["theme"]);
     subscribe(second);
     await flushMacrotask();
+
     expect(first.snapshot()).toMatchObject({
         status: StorageStatus.Ready,
         error: undefined,
         value: {theme: "fresh"},
     });
+
     stale.resolve({theme: "stale"});
     await flushMacrotask();
     expect(first.snapshot().value).toEqual({theme: "fresh"});
@@ -215,13 +240,16 @@ test("shares mutation state and reconciles a failed operation without replacing 
     subscribe(second);
     await flushMacrotask();
     const error = new Error("operation failed after a write");
+
     const mutation = observer.mutate(["theme"], async storage => {
         await storage.set("theme", "dark");
         throw error;
     });
+
     expect(first.snapshot().isMutating).toBe(true);
     expect(second.snapshot().isMutating).toBe(true);
     await expect(mutation).rejects.toBe(error);
+
     expect(first.snapshot()).toMatchObject({
         status: StorageStatus.Ready,
         value: {theme: "dark"},
@@ -229,8 +257,10 @@ test("shares mutation state and reconciles a failed operation without replacing 
         error: undefined,
         mutationError: error,
     });
+
     expect(second.snapshot().mutationError).toBe(error);
     await observer.mutate(["theme"], storage => storage.remove("theme"));
+
     expect(first.snapshot()).toMatchObject({
         status: StorageStatus.Ready,
         value: {},

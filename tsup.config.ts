@@ -1,5 +1,5 @@
-import {defineConfig} from "tsup";
 import {fixImportsPlugin} from "esbuild-fix-imports-plugin";
+import {defineConfig} from "tsup";
 
 export default defineConfig({
     entry: [

@@ -1,6 +1,7 @@
-import {StorageCorruptionError} from "../errors";
 import {MonoStorage, SecureStorage, Storage} from "./index";
+
 import {captureUnhandledErrors, flushMacrotask} from "../../tests/helpers/async";
+import {StorageCorruptionError} from "../errors";
 
 beforeEach(() => global.resetStorageChangeListeners());
 
@@ -10,6 +11,7 @@ test("secure subscription reports a terminal decoding failure once without parti
     const callback = jest.fn();
     const errors = captureUnhandledErrors();
     const stop = storage.subscribe(callback, {onError});
+
     try {
         global.simulateStorageChange({storage, key: "theme", oldValue: undefined, newValue: 42});
         await flushMacrotask();
@@ -32,6 +34,7 @@ test.each([false, true])("MonoStorage forwards terminal %s base/bucket errors to
     const callback = jest.fn();
     const errors = captureUnhandledErrors();
     const stop = mono.watch({theme: callback}, {onError});
+
     try {
         global.simulateStorageChange({storage: base, key: "bucket", oldValue: undefined, newValue: 42});
         await flushMacrotask();
@@ -48,9 +51,14 @@ test.each([false, true])("MonoStorage forwards terminal %s base/bucket errors to
 test("onError does not intercept application callback failures or close their subscriptions", async () => {
     const storage = new Storage<{count: number}>();
     const onError = jest.fn();
-    const callback = jest.fn(() => { throw new Error("application failure"); });
+
+    const callback = jest.fn(() => {
+        throw new Error("application failure");
+    });
+
     const errors = captureUnhandledErrors();
     const stop = storage.subscribe(callback, {onError});
+
     try {
         global.simulateStorageChange({storage, key: "count", oldValue: 0, newValue: 1});
         await flushMacrotask();
@@ -69,9 +77,14 @@ test("onError does not intercept application callback failures or close their su
 test("an error handler rejection is surfaced without delivering future events", async () => {
     const storage = new SecureStorage<{theme: string}>();
     const handlerError = new Error("handler failed");
-    const onError = jest.fn(async () => { throw handlerError; });
+
+    const onError = jest.fn(async () => {
+        throw handlerError;
+    });
+
     const errors = captureUnhandledErrors();
     const stop = storage.subscribe(jest.fn(), {onError});
+
     try {
         global.simulateStorageChange({storage, key: "theme", oldValue: undefined, newValue: 42});
         await flushMacrotask();

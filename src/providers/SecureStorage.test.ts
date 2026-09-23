@@ -1,16 +1,19 @@
 import MonoStorage from "./MonoStorage";
 import SecureStorage from "./SecureStorage";
 import Storage from "./Storage";
-import {StorageCorruptionError} from "../errors";
+
 import {captureUnhandledErrors, flushMacrotask} from "../../tests/helpers/async";
+import {StorageCorruptionError} from "../errors";
 
 const hasArea = (name: keyof typeof chrome.storage) => {
     const area = (chrome.storage as any)[name];
+
     return area && typeof area.get === "function" && typeof area.clear === "function";
 };
 
 const clearAllAreas = async () => {
     const areas: (keyof typeof chrome.storage)[] = ["local", "sync", "managed", "session"] as any;
+
     for (const a of areas) {
         if (hasArea(a)) {
             await new Promise<void>(resolve => (chrome.storage as any)[a].clear(() => resolve()));
@@ -26,6 +29,7 @@ const namespace = "user";
 
 const securedStorage = new SecureStorage();
 const securedStorageWithNamespace = new SecureStorage({namespace});
+
 const securedStorageWithSecureKey = new SecureStorage({
     secureKey: "customSecureKey",
 });
@@ -75,13 +79,17 @@ describe("namespace separator validation", () => {
         await expect(storage.update("refresh:Token", singleUpdater)).rejects.toThrow(TypeError);
         await expect(storage.remove("refresh:Token")).rejects.toThrow(TypeError);
         await expect(storage.get(["accessToken", "refresh:Token"] as const)).rejects.toThrow(TypeError);
+
         await expect(storage.set({accessToken: "access", "refresh:Token": "refresh"})).rejects.toThrow(
             TypeError
         );
+
         await expect(
             storage.update(["accessToken", "refresh:Token"] as const, batchUpdater)
         ).rejects.toThrow(TypeError);
+
         await expect(storage.remove(["accessToken", "refresh:Token"])).rejects.toThrow(TypeError);
+
         expect(() => storage.watch({"refresh:Token": jest.fn()})).toThrow(
             'Storage key "refresh:Token" must not contain the namespace separator ":".'
         );
@@ -151,6 +159,7 @@ describe("strict physical key codec", () => {
                 oldValue: "flat",
                 newValue: "changed-flat",
             });
+
             await flushMacrotask();
 
             expect(flatCallback).toHaveBeenCalledTimes(1);
@@ -330,7 +339,9 @@ describe("batch overloads", () => {
             accessToken: "access",
             refreshToken: "refresh",
         });
+
         expect(getSpy).toHaveBeenCalledTimes(1);
+
         expect(getSpy).toHaveBeenCalledWith(
             ["secure:auth:accessToken", "secure:auth:refreshToken", "secure:auth:attempts"],
             expect.any(Function)
@@ -437,10 +448,12 @@ describe("batch overloads", () => {
         );
 
         expect(compare).toHaveBeenCalledTimes(1);
+
         expect(compare).toHaveBeenCalledWith(
             {accessToken: "old", refreshToken: "remove", attempts: 1},
             {accessToken: "new", attempts: 1}
         );
+
         expect(result).toEqual({accessToken: "old", refreshToken: "remove", attempts: 1});
         expect(encryptSpy).not.toHaveBeenCalled();
         expect(setSpy).not.toHaveBeenCalled();
@@ -467,6 +480,7 @@ describe("batch overloads", () => {
             {accessToken: "same", attempts: 1},
             {accessToken: "same", attempts: 2}
         );
+
         expect(result).toEqual({accessToken: "same", attempts: 2});
         expect(encryptSpy).toHaveBeenCalledTimes(2);
         expect(setSpy).toHaveBeenCalledTimes(1);
@@ -540,9 +554,11 @@ describe("corrupted values", () => {
         await chrome.storage.local.set({[fullKey]: ""});
 
         await expect(storage.get("accessToken")).rejects.toBeInstanceOf(StorageCorruptionError);
+
         await expect(storage.get(["accessToken", "attempts"] as const)).rejects.toBeInstanceOf(
             StorageCorruptionError
         );
+
         await expect(storage.getAll()).rejects.toBeInstanceOf(StorageCorruptionError);
     });
 
@@ -578,6 +594,7 @@ describe("watch and subscribe methods", () => {
         const errors = captureUnhandledErrors();
         const unsubscribe = storage.subscribe(callback);
         const change = Object.create({newValue: {corrupted: true}}) as chrome.storage.StorageChange;
+
         Object.defineProperty(change, "oldValue", {
             enumerable: true,
             value: encryptedOldValue,
@@ -590,6 +607,7 @@ describe("watch and subscribe methods", () => {
             expect(callback).toHaveBeenCalledWith({
                 accessToken: {oldValue: "old", newValue: undefined},
             });
+
             expect(errors.pending).toBe(0);
         } finally {
             unsubscribe();
@@ -607,14 +625,17 @@ describe("watch and subscribe methods", () => {
             storage,
             changes: {accessToken: {newValue: encryptedValue}},
         });
+
         global.simulateStorageChanges({
             storage,
             changes: {accessToken: {oldValue: encryptedValue}},
         });
+
         global.simulateStorageChanges({
             storage,
             changes: {accessToken: {oldValue: undefined, newValue: encryptedValue}},
         });
+
         global.simulateStorageChanges({
             storage,
             changes: {accessToken: {oldValue: encryptedValue, newValue: undefined}},
@@ -646,6 +667,7 @@ describe("watch and subscribe methods", () => {
         });
 
         expect(callback).toHaveBeenCalledTimes(1);
+
         expect(callback).toHaveBeenCalledWith({
             accessToken: {oldValue: "old", newValue: "new"},
             attempts: {oldValue: 1, newValue: 2},
@@ -675,9 +697,11 @@ describe("watch and subscribe methods", () => {
     test("serializes decrypt formatting while not waiting for subscriber promises", async () => {
         const storage = new SecureStorage<{value?: string}>({namespace: "ordered"});
         let releaseFirst: ((value: string) => void) | undefined;
+
         const firstValue = new Promise<string>(resolve => {
             releaseFirst = resolve;
         });
+
         const decryptSpy = jest.spyOn(storage as any, "decrypt").mockImplementation((value: unknown) => {
             if (value === "slow") {
                 return firstValue;
@@ -685,6 +709,7 @@ describe("watch and subscribe methods", () => {
 
             return Promise.resolve(String(value));
         });
+
         const neverSettles = new Promise<void>(() => undefined);
         const callback = jest.fn().mockReturnValueOnce(neverSettles).mockReturnValue(undefined);
         const unsubscribe = storage.subscribe(callback);
@@ -708,9 +733,11 @@ describe("watch and subscribe methods", () => {
     test("unsubscribe during decrypt prevents late callback and future delivery", async () => {
         const storage = new SecureStorage<{value?: string}>({namespace: "unsubscribe-pending"});
         let releaseDecrypt: ((value: string) => void) | undefined;
+
         const pendingDecrypt = new Promise<string>(resolve => {
             releaseDecrypt = resolve;
         });
+
         const decryptSpy = jest.spyOn(storage as any, "decrypt").mockImplementation((value: unknown) => {
             if (value === "pending") {
                 return pendingDecrypt;
@@ -718,6 +745,7 @@ describe("watch and subscribe methods", () => {
 
             return Promise.resolve(String(value));
         });
+
         const callback = jest.fn();
         const unsubscribe = storage.subscribe(callback);
 
@@ -742,6 +770,7 @@ describe("watch and subscribe methods", () => {
                 oldValue: "decoded",
                 newValue: "future",
             });
+
             await flushMacrotask();
 
             expect(callback).not.toHaveBeenCalled();
@@ -794,6 +823,7 @@ describe("watch and subscribe methods", () => {
                     unrelated: {oldValue: null, newValue: {corrupted: true}},
                 },
             });
+
             await flushMacrotask();
 
             expect(themeCallback).not.toHaveBeenCalled();
@@ -855,6 +885,7 @@ describe("watch and subscribe methods", () => {
             oldValue: "light",
             newValue: "dark",
         });
+
         await global.simulateSecureStorageChange({
             storage: securedStorage,
             key: "volume",
@@ -878,6 +909,7 @@ describe("watch and subscribe methods", () => {
             oldValue: "light",
             newValue: "dark",
         });
+
         await global.simulateSecureStorageChange({
             storage: securedStorage,
             key: "volume",
@@ -903,6 +935,7 @@ describe("watch and subscribe methods", () => {
                 oldValue: null,
                 newValue: {theme: "dark"},
             });
+
             global.simulateStorageChange({
                 storage: securedStorage,
                 key: "theme",
@@ -922,6 +955,7 @@ describe("watch and subscribe methods", () => {
                 oldValue: "still-ignored",
                 newValue: "still-ignored-too",
             });
+
             await flushMacrotask();
             expect(keyCallback).not.toHaveBeenCalled();
         } finally {
@@ -954,6 +988,7 @@ describe("static factory methods", () => {
         test("SecureStorage.Local() forwards secureKey to key derivation", async () => {
             const digestSpy = crypto.subtle.digest as jest.Mock;
             digestSpy.mockClear();
+
             const storage = SecureStorage.Local<{theme?: string}>({
                 namespace: "factory-secure-key",
                 secureKey: "ForwardedSecureKey",
@@ -962,6 +997,7 @@ describe("static factory methods", () => {
             await storage.set("theme", "dark");
 
             expect(digestSpy).toHaveBeenCalledTimes(1);
+
             expect(digestSpy).toHaveBeenCalledWith(
                 "SHA-256",
                 new TextEncoder().encode("ForwardedSecureKey")

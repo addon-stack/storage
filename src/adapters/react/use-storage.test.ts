@@ -1,19 +1,29 @@
+import {createElement, type PropsWithChildren, StrictMode} from "react";
+
 import {act, cleanup, renderHook, waitFor} from "@testing-library/react";
-import {createElement, StrictMode, type PropsWithChildren} from "react";
-import {Storage, SecureStorage} from "../../providers";
-import {StoragePartialUpdateError} from "../../errors";
+
+import useStorage from "./use-storage";
+
 import {flushMacrotask} from "../../../tests/helpers/async";
-import useStorage from "./useStorage";
+import {StoragePartialUpdateError} from "../../errors";
 import {StorageStatus} from "../../index";
+import {SecureStorage, Storage} from "../../providers";
+
 import type {StorageSubscribeOptions} from "../../types";
 
 type State = {theme: string | null; language: string; count: number; extra: string};
-const deferred = <T,>() => {
+
+const deferred = <T>() => {
     let resolve!: (value: T) => void;
     let reject!: (error: unknown) => void;
-    const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
+
+    const promise = new Promise<T>((yes, no) => {
+        resolve = yes; reject = no;
+    });
+
     return {promise, resolve, reject};
 };
+
 const ready = async (result: {current: {status: StorageStatus}}) =>
     waitFor(() => expect(result.current.status).toBe(StorageStatus.Ready));
 
@@ -22,6 +32,7 @@ beforeEach(async () => {
     global.resetStorageChangeListeners();
     jest.clearAllMocks();
 });
+
 afterEach(async () => {
     cleanup();
     await flushMacrotask();
@@ -34,27 +45,39 @@ test("renders a default immediately, then distinguishes an absent key without pe
     jest.spyOn(storage, "get").mockReturnValueOnce(read.promise);
     const set = jest.spyOn(storage, "set");
     const {result} = renderHook(() => useStorage({storage, key: "theme", defaultValue: "light"}));
+
     expect(result.current).toMatchObject({
         value: "light",
         status: StorageStatus.Loading,
         exists: undefined,
     });
+
     await act(async () => read.resolve({}));
+
     expect(result.current).toMatchObject({
         value: "light",
         status: StorageStatus.Ready,
         exists: false,
     });
+
     expect(set).not.toHaveBeenCalled();
 });
 
 test("uses the default local provider and Promise mutations", async () => {
     const {result} = renderHook(() => useStorage({key: "theme", defaultValue: "light"}));
     await ready(result);
-    await act(async () => { await result.current.set("dark"); });
+
+    await act(async () => {
+        await result.current.set("dark");
+    });
+
     expect(result.current.value).toBe("dark");
     expect(result.current.exists).toBe(true);
-    await act(async () => { await result.current.remove(); });
+
+    await act(async () => {
+        await result.current.remove();
+    });
+
     expect(result.current.value).toBe("light");
     expect(result.current.exists).toBe(false);
 });
@@ -115,11 +138,13 @@ test("keeps snapshot identity and avoids renders when events or refresh return e
     await ready(result);
     const count = render.mock.calls.length;
     const value = result.current.value;
+
     await act(async () => {
         global.simulateStorageChange({storage, key: "settings", oldValue: {theme: "dark"}, newValue: {theme: "dark"}});
         await flushMacrotask();
         await result.current.refresh();
     });
+
     expect(render).toHaveBeenCalledTimes(count);
     expect(result.current.value).toBe(value);
 });
@@ -129,7 +154,11 @@ test("ignores an old key's read after switching selection", async () => {
     const old = deferred<Partial<State>>();
     jest.spyOn(storage, "get").mockReturnValueOnce(old.promise).mockResolvedValue({language: "en"});
     const {result, rerender} = renderHook(({key}: {key: "theme" | "language"}) => useStorage({storage, key, defaultValue: "fallback"}), {initialProps: {key: "theme"}});
-    await act(async () => { await Promise.resolve(); });
+
+    await act(async () => {
+        await Promise.resolve();
+    });
+
     rerender({key: "language"});
     expect(result.current.value).toBe("fallback");
     await ready(result);
@@ -156,7 +185,11 @@ test("a storage event wins over an older initial read, including deletion", asyn
     jest.spyOn(storage, "get").mockReturnValueOnce(read.promise);
     const {result} = renderHook(() => useStorage({storage, keys: ["theme", "language"], defaultValue: {theme: "fallback"}}));
     act(() => global.simulateStorageChanges({storage, changes: {theme: {oldValue: "old", newValue: undefined}}}));
-    await act(async () => { await flushMacrotask(); });
+
+    await act(async () => {
+        await flushMacrotask();
+    });
+
     await act(async () => read.resolve({theme: "old", language: "en"}));
     expect(result.current.value).toEqual({theme: "fallback", language: "en"});
     expect(result.current.exists).toEqual({theme: false, language: true});
@@ -170,7 +203,11 @@ test("read failures are observable, and refresh retries without writing defaults
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.error).toBe(error);
     expect(result.current.exists).toBeUndefined();
-    await act(async () => { await result.current.refresh(); });
+
+    await act(async () => {
+        await result.current.refresh();
+    });
+
     expect(result.current).toMatchObject({status: "ready", value: "light", exists: false, error: undefined});
 });
 
@@ -179,16 +216,27 @@ test("subscription failures retain values and refresh reinstalls the subscriptio
     await storage.set("theme", "dark");
     const original = storage.subscribe.bind(storage);
     let subscriptionOptions: StorageSubscribeOptions | undefined;
+
     const subscribe = jest.spyOn(storage, "subscribe").mockImplementation((callback, options) => {
         subscriptionOptions = options;
+
         return original(callback, options);
     });
+
     const {result} = renderHook(() => useStorage({storage, key: "theme"}));
     await ready(result);
     const error = new Error("subscription closed");
-    act(() => { subscriptionOptions?.onError?.(error); });
+
+    act(() => {
+        subscriptionOptions?.onError?.(error);
+    });
+
     expect(result.current).toMatchObject({status: "error", value: "dark", exists: true, error});
-    await act(async () => { await result.current.refresh(); });
+
+    await act(async () => {
+        await result.current.refresh();
+    });
+
     expect(subscribe).toHaveBeenCalledTimes(2);
     expect(result.current.status).toBe("ready");
 });
@@ -198,16 +246,30 @@ test("batch writes are patches, updates receive stored data, and remove only aff
     await storage.set({language: "en", extra: "keep"});
     const {result} = renderHook(() => useStorage({storage, keys: ["theme", "language"], defaultValue: {theme: "default"}}));
     await ready(result);
+
     const updater = jest.fn((previous: Partial<Pick<State, "theme" | "language">>) => {
         expect(previous).toEqual({language: "en"});
+
         return {theme: "dark"};
     });
-    await act(async () => { await result.current.update(updater, {timeout: 100}); });
+
+    await act(async () => {
+        await result.current.update(updater, {timeout: 100});
+    });
+
     expect(updater).toHaveBeenCalledTimes(1);
     expect(result.current.value).toEqual({theme: "dark", language: "en"});
-    await act(async () => { await result.current.set({theme: "light"}); });
+
+    await act(async () => {
+        await result.current.set({theme: "light"});
+    });
+
     expect(await storage.get("language")).toBe("en");
-    await act(async () => { await result.current.remove(); });
+
+    await act(async () => {
+        await result.current.remove();
+    });
+
     expect(result.current.value).toEqual({theme: "default"});
     expect(await storage.get("extra")).toBe("keep");
 });
@@ -218,9 +280,11 @@ test("concurrent functional updates use the provider lock and forward lock optio
     const {result} = renderHook(() => useStorage({storage, key: "count", defaultValue: 100}));
     await ready(result);
     const options = {timeout: 500, signal: new AbortController().signal};
+
     await act(async () => {
         await Promise.all([result.current.update(previous => (previous ?? 0) + 1, options), result.current.update(previous => (previous ?? 0) + 1)]);
     });
+
     expect(result.current.value).toBe(2);
     expect(update).toHaveBeenCalledWith("count", expect.any(Function), options);
 });
@@ -233,14 +297,26 @@ test("a failed earlier write cannot roll back a later success, and isMutating tr
     const {result} = renderHook(() => useStorage({storage, key: "theme"}));
     await ready(result);
     let failed!: Promise<unknown>;
-    act(() => { failed = result.current.set("first").catch(error => error); });
+
+    act(() => {
+        failed = result.current.set("first").catch(error => error);
+    });
+
     expect(result.current.isMutating).toBe(true);
     expect(result.current.value).toBe("initial");
-    await act(async () => { await result.current.set("second"); });
+
+    await act(async () => {
+        await result.current.set("second");
+    });
+
     expect(result.current.value).toBe("second");
     expect(result.current.isMutating).toBe(true);
     const error = new Error("first failed");
-    await act(async () => { first.reject(error); expect(await failed).toBe(error); });
+
+    await act(async () => {
+        first.reject(error); expect(await failed).toBe(error);
+    });
+
     expect(result.current).toMatchObject({value: "second", isMutating: false, mutationError: undefined, status: "ready"});
 });
 
@@ -248,13 +324,19 @@ test("mutation errors reject, retain confirmed data and recover partial writes",
     const storage = new Storage<State>();
     await storage.set({theme: "old", language: "en"});
     const error = new StoragePartialUpdateError<State>(["theme"], ["language"], new Error("remove failed"));
+
     jest.spyOn(storage, "update").mockImplementationOnce(async () => {
         await storage.set("theme", "new");
         throw error;
     });
+
     const {result} = renderHook(() => useStorage({storage, keys: ["theme", "language"]}));
     await ready(result);
-    await act(async () => { await expect(result.current.update(() => ({theme: "new", language: undefined}))).rejects.toBe(error); });
+
+    await act(async () => {
+        await expect(result.current.update(() => ({theme: "new", language: undefined}))).rejects.toBe(error);
+    });
+
     expect(result.current).toMatchObject({value: {theme: "new", language: "en"}, status: "ready", mutationError: error, isMutating: false});
 });
 
@@ -263,20 +345,36 @@ test("rejects unselected batch writes at runtime", async () => {
     const {result} = renderHook(() => useStorage({storage, keys: ["theme"]}));
     await ready(result);
     const set = jest.spyOn(storage, "set");
-    await act(async () => { await expect(result.current.set({extra: "bad"} as any)).rejects.toThrow("unselected key"); });
+
+    await act(async () => {
+        await expect(result.current.set({extra: "bad"} as any)).rejects.toThrow("unselected key");
+    });
+
     expect(set).not.toHaveBeenCalled();
 });
 
 test.each(["plain", "secure", "mono", "secure-mono"])("works through %s providers", async kind => {
     const storage = kind === "secure" ? SecureStorage.Local<State>({namespace: kind})
         : kind === "secure-mono" ? SecureStorage.Local<State>({namespace: kind, key: "bucket"})
-        : Storage.Local<State>({namespace: kind, ...(kind === "mono" ? {key: "bucket"} : {})});
+            : Storage.Local<State>({namespace: kind, ...(kind === "mono" ? {key: "bucket"} : {})});
+
     const {result} = renderHook(() => useStorage({storage, keys: ["theme", "count"]}));
     await ready(result);
-    await act(async () => { await result.current.set({theme: "dark", count: 1}); });
-    await act(async () => { await result.current.update(previous => ({count: (previous.count ?? 0) + 1})); });
+
+    await act(async () => {
+        await result.current.set({theme: "dark", count: 1});
+    });
+
+    await act(async () => {
+        await result.current.update(previous => ({count: (previous.count ?? 0) + 1}));
+    });
+
     expect(result.current.value).toEqual({theme: "dark", count: 2});
-    await act(async () => { await result.current.remove(); });
+
+    await act(async () => {
+        await result.current.remove();
+    });
+
     expect(result.current.exists).toEqual({theme: false, count: false});
 });
 
@@ -288,7 +386,11 @@ test("StrictMode shares setup work and unmount releases listeners with pending r
     const removeListener = jest.spyOn(chrome.storage.onChanged, "removeListener");
     const wrapper = ({children}: PropsWithChildren) => createElement(StrictMode, null, children);
     const {unmount} = renderHook(() => useStorage({storage, key: "theme"}), {wrapper});
-    await act(async () => { await Promise.resolve(); });
+
+    await act(async () => {
+        await Promise.resolve();
+    });
+
     expect(get).toHaveBeenCalledTimes(1);
     expect(subscribe).toHaveBeenCalledTimes(1);
     unmount();
@@ -304,10 +406,23 @@ test("a later refresh wins over an older refresh", async () => {
     const old = deferred<Partial<State>>();
     jest.spyOn(storage, "get").mockReturnValueOnce(old.promise).mockResolvedValueOnce({theme: "new"});
     let earlier!: Promise<void>;
-    act(() => { earlier = result.current.refresh(); });
-    await act(async () => { await Promise.resolve(); });
-    await act(async () => { await result.current.refresh(); });
-    await act(async () => { old.resolve({theme: "old"}); await earlier; });
+
+    act(() => {
+        earlier = result.current.refresh();
+    });
+
+    await act(async () => {
+        await Promise.resolve();
+    });
+
+    await act(async () => {
+        await result.current.refresh();
+    });
+
+    await act(async () => {
+        old.resolve({theme: "old"}); await earlier;
+    });
+
     expect(result.current.value).toBe("new");
 });
 
@@ -318,7 +433,11 @@ test("read-only managed data can be observed and native mutation errors are pres
     await ready(result);
     const error = new Error("managed storage is read-only");
     jest.spyOn(storage, "set").mockRejectedValueOnce(error);
-    await act(async () => { await expect(result.current.set("other")).rejects.toBe(error); });
+
+    await act(async () => {
+        await expect(result.current.set("other")).rejects.toBe(error);
+    });
+
     expect(result.current).toMatchObject({value: "policy", exists: true, status: "ready", mutationError: error});
 });
 
@@ -329,16 +448,28 @@ test("a secure decoding failure reaches the hook and refresh recovers the subscr
     act(() => global.simulateStorageChange({storage, key: "theme", oldValue: undefined, newValue: 42}));
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.error).toBeInstanceOf(Error);
-    await act(async () => { await result.current.refresh(); });
+
+    await act(async () => {
+        await result.current.refresh();
+    });
+
     expect(result.current.status).toBe("ready");
-    await act(async () => { await global.simulateSecureStorageChange({storage, key: "theme", oldValue: undefined, newValue: "dark"}); });
+
+    await act(async () => {
+        await global.simulateSecureStorageChange({storage, key: "theme", oldValue: undefined, newValue: "dark"});
+    });
+
     expect(result.current.value).toBe("dark");
 });
 
 test("new consumers retry a failed subscription and recover existing consumers", async () => {
     const storage = new Storage<State>();
     const error = new Error("cannot subscribe");
-    jest.spyOn(storage, "subscribe").mockImplementationOnce(() => { throw error; });
+
+    jest.spyOn(storage, "subscribe").mockImplementationOnce(() => {
+        throw error;
+    });
+
     const first = renderHook(() => useStorage({storage, key: "theme"}));
     await waitFor(() => expect(first.result.current.status).toBe("error"));
     const second = renderHook(() => useStorage({storage, key: "language"}));
@@ -363,11 +494,14 @@ test("new consumers re-read after the last subscriber has left", async () => {
 test("one batch event updates the selected snapshot together and ignores unselected changes", async () => {
     const storage = new Storage<State>();
     const renders: unknown[] = [];
+
     const {result} = renderHook(() => {
         const state = useStorage({storage, keys: ["theme", "language"]});
         renders.push(state.value);
+
         return state;
     });
+
     await ready(result);
     renders.length = 0;
     act(() => global.simulateStorageChanges({storage, changes: {theme: {newValue: "dark"}, language: {newValue: "en"}}}));
@@ -375,7 +509,11 @@ test("one batch event updates the selected snapshot together and ignores unselec
     expect(renders.every(value => JSON.stringify(value) === JSON.stringify({language: "en", theme: "dark"}))).toBe(true);
     const count = renders.length;
     act(() => global.simulateStorageChange({storage, key: "extra", oldValue: undefined, newValue: "other"}));
-    await act(async () => { await flushMacrotask(); });
+
+    await act(async () => {
+        await flushMacrotask();
+    });
+
     expect(renders).toHaveLength(count);
 });
 
@@ -383,9 +521,11 @@ test("inline batch defaults preserve value identity across renders and readiness
     const storage = new Storage<{settings: {theme: string}; count: number}>();
     const read = deferred<Partial<{settings: {theme: string}; count: number}>>();
     jest.spyOn(storage, "get").mockReturnValueOnce(read.promise);
+
     const {result, rerender} = renderHook(({theme}) => useStorage({
         storage, keys: ["settings", "count"], defaultValue: {settings: {theme}},
     }), {initialProps: {theme: "light"}});
+
     const initial = result.current.value;
     rerender({theme: "light"});
     expect(result.current.value).toBe(initial);
@@ -396,10 +536,12 @@ test("inline batch defaults preserve value identity across renders and readiness
     const changed = result.current.value;
     expect(changed).not.toBe(initial);
     expect(changed).toEqual({settings: {theme: "dark"}});
+
     await act(async () => {
         global.simulateStorageChange({storage, key: "settings", oldValue: undefined, newValue: {theme: "dark"}});
         await flushMacrotask();
     });
+
     expect(result.current.value).toBe(changed);
     rerender({theme: "ignored"});
     expect(result.current.value).toBe(changed);
@@ -407,10 +549,12 @@ test("inline batch defaults preserve value identity across renders and readiness
 
 test("batch projection handles removed defaults and prototype-named keys", async () => {
     const storage = new Storage<{constructor: string; toString: string; __proto__: string}>();
+
     const {result, rerender} = renderHook(({defaults}) => useStorage({storage,
         keys: ["constructor", "toString", "__proto__"],
         defaultValue: defaults ? {constructor: "own", toString: undefined, ["__proto__"]: "safe"} : undefined,
     }), {initialProps: {defaults: true}});
+
     await ready(result);
     const value = result.current.value;
     rerender({defaults: true});
@@ -429,15 +573,24 @@ test("invalid batch set rejects before mutation state, I/O or reconciliation", a
     await ready(result);
     const failure = new Error("previous write failed");
     jest.spyOn(storage, "set").mockRejectedValueOnce(failure);
-    await act(async () => { await expect(result.current.set({theme: "dark"})).rejects.toBe(failure); });
+
+    await act(async () => {
+        await expect(result.current.set({theme: "dark"})).rejects.toBe(failure);
+    });
+
     const set = jest.spyOn(storage, "set").mockClear();
     const get = jest.spyOn(storage, "get");
     const subscribe = jest.spyOn(storage, "subscribe");
     const state = result.current;
+
     for (const invalid of [{extra: "bad"}, null, [], "bad"]) {
-        await act(async () => { await expect(result.current.set(invalid as any)).rejects.toBeInstanceOf(TypeError); });
+        await act(async () => {
+            await expect(result.current.set(invalid as any)).rejects.toBeInstanceOf(TypeError);
+        });
+
         expect(result.current).toBe(state);
     }
+
     expect(result.current.mutationError).toBe(failure);
     expect(get).not.toHaveBeenCalled();
     expect(set).not.toHaveBeenCalled();
@@ -466,12 +619,19 @@ test("retry after subscription failure ignores an obsolete pending read", async 
     jest.spyOn(storage, "get").mockReturnValueOnce(stale.promise).mockResolvedValueOnce({theme: "fresh"});
     const subscribe = storage.subscribe.bind(storage);
     let options: StorageSubscribeOptions | undefined;
+
     jest.spyOn(storage, "subscribe").mockImplementation((callback, next) => {
         options = next;
+
         return subscribe(callback, next);
     });
+
     const first = renderHook(() => useStorage({storage, key: "theme"}));
-    await act(async () => { await Promise.resolve(); options?.onError?.(new Error("closed")); });
+
+    await act(async () => {
+        await Promise.resolve(); options?.onError?.(new Error("closed"));
+    });
+
     const second = renderHook(() => useStorage({storage, key: "theme"}));
     await ready(second.result);
     await act(async () => stale.resolve({theme: "obsolete"}));
@@ -494,8 +654,10 @@ test.each([null, [], new Date(0), {extra: "bad"}, {theme: "light", extra: "bad"}
         const storage = new Storage<State>();
         const subscribe = jest.spyOn(storage, "subscribe");
         const get = jest.spyOn(storage, "get");
+
         expect(() => renderHook(() => useStorage({storage, keys: ["theme"], defaultValue} as any)))
             .toThrow("useStorage defaultValue must contain only selected keys");
+
         expect(subscribe).not.toHaveBeenCalled();
         expect(get).not.toHaveBeenCalled();
     }

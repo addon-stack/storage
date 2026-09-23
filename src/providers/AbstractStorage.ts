@@ -1,6 +1,9 @@
 import {browser} from "@addon-core/browser";
 import {callWithPromise, handleListener} from "@addon-core/browser/utils";
 import {dequal as defaultCompare} from "dequal/lite";
+
+import MonoStorage from "./MonoStorage";
+
 import {planBatchUpdate} from "../batch";
 import {StoragePartialUpdateError} from "../errors";
 import {WebLockManager} from "../locking";
@@ -19,7 +22,7 @@ import {
     setRecordValue,
 } from "../utils";
 import {watchChanges} from "../watch";
-import MonoStorage from "./MonoStorage";
+
 import type {
     StorageBatchUpdateOptions,
     StorageBatchUpdater,
@@ -187,6 +190,7 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
             }
 
             await this.setBatchUnlocked(values);
+
             return;
         }
 
@@ -244,6 +248,7 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
                     }
 
                     await this.removeUnlocked(key);
+
                     return undefined;
                 }
 
@@ -333,6 +338,7 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
 
     protected async getStoredItems(keys: string | string[] | null): Promise<Record<string, unknown>> {
         const result = await callWithPromise<Record<string, unknown>>(resolve => this.storage.get(keys, resolve));
+
         return copyRecord(result);
     }
 
@@ -478,6 +484,7 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
             } catch (error) {
                 if (!disposed) {
                     dispose();
+
                     if (options?.onError) {
                         invokeCallback(() => options.onError?.(error));
                     } else {
@@ -521,10 +528,10 @@ export default abstract class AbstractStorage<T extends StorageState = StorageSt
         key: keyof P,
         changes: StorageChange
     ): Promise<{
-        key: keyof P;
-        newValue: P[keyof P] | undefined;
-        oldValue: P[keyof P] | undefined;
-    }> {
+            key: keyof P;
+            newValue: P[keyof P] | undefined;
+            oldValue: P[keyof P] | undefined;
+        }> {
         return {
             key,
             newValue: changes.newValue as P[keyof P] | undefined,

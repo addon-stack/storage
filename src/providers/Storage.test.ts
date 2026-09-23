@@ -1,16 +1,20 @@
 import MonoStorage from "./MonoStorage";
 import Storage from "./Storage";
-import {StoragePartialUpdateError} from "../errors";
-import type {StorageLocker} from "../types";
+
 import {captureUnhandledErrors, flushMacrotask} from "../../tests/helpers/async";
+import {StoragePartialUpdateError} from "../errors";
+
+import type {StorageLocker} from "../types";
 
 const hasArea = (name: keyof typeof chrome.storage) => {
     const area = (chrome.storage as any)[name];
+
     return area && typeof area.get === "function" && typeof area.clear === "function";
 };
 
 const clearAllAreas = async () => {
     const areas: (keyof typeof chrome.storage)[] = ["local", "sync", "managed", "session"] as any;
+
     for (const a of areas) {
         if (hasArea(a)) {
             await new Promise<void>(resolve => (chrome.storage as any)[a].clear(() => resolve()));
@@ -35,7 +39,7 @@ interface BatchState {
 }
 
 interface PrototypeKeyState {
-    "__proto__"?: string;
+    __proto__?: string;
     safe?: string;
 }
 
@@ -80,10 +84,12 @@ test("update method - serializes concurrent writes for the same key", async () =
     await Promise.all([
         storage.update("count", async prev => {
             await new Promise(resolve => setTimeout(resolve, 10));
+
             return (prev ?? 0) + 1;
         }),
         storage.update("count", async prev => {
             await new Promise(resolve => setTimeout(resolve, 10));
+
             return (prev ?? 0) + 1;
         }),
     ]);
@@ -126,6 +132,7 @@ test("remove method - waits for pending update on the same key", async () => {
 
     const updatePromise = storage.update("theme", async () => {
         await new Promise(resolve => setTimeout(resolve, 20));
+
         return "dark";
     });
 
@@ -162,6 +169,7 @@ test("update method - forwards lock options to custom storage locker", async () 
     const locker: StorageLocker = {
         async request(name, task, options) {
             requests.push({name, options});
+
             return await task();
         },
     };
@@ -308,6 +316,7 @@ describe("batch overloads", () => {
 
         const callback = jest.fn();
         const unsubscribe = isolatedStorage.subscribe(callback);
+
         global.simulateStorageChanges({
             storage: isolatedStorage,
             changes: {["__proto__"]: {oldValue: "stored", newValue: "stored:updated"}},
@@ -318,10 +327,12 @@ describe("batch overloads", () => {
         expect(callback).toHaveBeenCalledTimes(1);
         const changes = callback.mock.calls[0]?.[0];
         expect(Object.getPrototypeOf(changes)).toBe(Object.prototype);
+
         expect(Object.getOwnPropertyDescriptor(changes, "__proto__")?.value).toEqual({
             oldValue: "stored",
             newValue: "stored:updated",
         });
+
         unsubscribe();
     });
 
@@ -340,10 +351,12 @@ describe("batch overloads", () => {
         await isolatedStorage.set({a: 1, b: 2, c: "ready"});
 
         expect(setSpy).toHaveBeenCalledTimes(1);
+
         expect(setSpy).toHaveBeenCalledWith(
             {"batch:a": 1, "batch:b": 2, "batch:c": "ready"},
             expect.any(Function)
         );
+
         expect(await global.storageLocalGet(["a", "b", "c"], isolatedStorage)).toEqual({
             "batch:a": 1,
             "batch:b": 2,
@@ -381,6 +394,7 @@ describe("batch overloads", () => {
             await expect((isolatedStorage.set as (value: unknown) => Promise<void>)(values)).rejects.toThrow(
                 TypeError
             );
+
             expect(setSpy).not.toHaveBeenCalled();
         }
     );
@@ -404,6 +418,7 @@ describe("batch overloads", () => {
             enumerable: true,
             get: () => {
                 reads += 1;
+
                 return reads === 1 ? 1 : undefined;
             },
         });
@@ -416,6 +431,7 @@ describe("batch overloads", () => {
 
     test("missing prototype-like keys stay absent and batch updater snapshots do not inherit them", async () => {
         const isolatedStorage = new Storage<PrototypeNamedState>();
+
         const compare = jest.fn((prev: Partial<PrototypeNamedState>, next: Partial<PrototypeNamedState>) => {
             expect(Object.getPrototypeOf(prev)).toBeNull();
             expect(Object.getPrototypeOf(next)).toBeNull();
@@ -593,6 +609,7 @@ describe("batch overloads", () => {
         removeSpy.mockClear();
 
         await expect(isolatedStorage.update(["a", "b"] as const, () => ({}))).resolves.toEqual({a: 1, b: 2});
+
         await expect(isolatedStorage.update(["a", "b"] as const, () => ({a: 1, b: 2}))).resolves.toEqual({
             a: 1,
             b: 2,
@@ -670,12 +687,15 @@ describe("batch overloads", () => {
 
     test("batch update deduplicates and sorts lock keys while forwarding lock options", async () => {
         const requests: Array<{name: string; options: any}> = [];
+
         const locker: StorageLocker = {
             async request(name, task, options) {
                 requests.push({name, options});
+
                 return await task();
             },
         };
+
         const isolatedStorage = new Storage<BatchState>({namespace: "batch", locker});
         const controller = new AbortController();
 
@@ -697,10 +717,12 @@ describe("batch overloads", () => {
         await Promise.all([
             isolatedStorage.update(["a", "b"] as const, async prev => {
                 await new Promise(resolve => setTimeout(resolve, 10));
+
                 return {a: (prev.a ?? 0) + 1, b: (prev.b ?? 0) + 1};
             }),
             isolatedStorage.update(["b", "a"] as const, async prev => {
                 await new Promise(resolve => setTimeout(resolve, 10));
+
                 return {a: (prev.a ?? 0) + 1, b: (prev.b ?? 0) + 1};
             }),
         ]);
@@ -715,10 +737,12 @@ describe("batch overloads", () => {
         await Promise.all([
             isolatedStorage.update(["a", "b"] as const, async prev => {
                 await new Promise(resolve => setTimeout(resolve, 10));
+
                 return {a: (prev.a ?? 0) + 1, b: (prev.b ?? 0) + 1};
             }),
             isolatedStorage.update("b", async prev => {
                 await new Promise(resolve => setTimeout(resolve, 5));
+
                 return (prev ?? 0) + 1;
             }),
         ]);
@@ -739,6 +763,7 @@ describe("batch overloads", () => {
                 return await task();
             },
         };
+
         const isolatedStorage = new Storage<BatchState>({locker});
         await isolatedStorage.set({a: 1, b: 2});
 
@@ -786,6 +811,7 @@ describe("namespace separator validation", () => {
         expect(() => new Storage<SeparatorState>({namespace: "invalid:namespace"})).toThrow(
             'Storage namespace "invalid:namespace" must not contain the namespace separator ":".'
         );
+
         expect(() => Storage.Local<SeparatorState>({key: "invalid:bucket"})).toThrow(
             'Storage key "invalid:bucket" must not contain the namespace separator ":".'
         );
@@ -955,10 +981,12 @@ describe("watch and subscribe methods", () => {
         await flushMacrotask();
 
         expect(batchCallback).toHaveBeenCalledTimes(1);
+
         expect(batchCallback).toHaveBeenCalledWith({
             a: {oldValue: 1, newValue: 2},
             c: {oldValue: undefined, newValue: "created"},
         });
+
         expect(legacyCallback).toHaveBeenCalledTimes(2);
         expect(legacyCallback).toHaveBeenCalledWith(2, 1, "a");
         expect(legacyCallback).toHaveBeenCalledWith("created", undefined, "c");
@@ -986,6 +1014,7 @@ describe("watch and subscribe methods", () => {
             storage: otherNamespace,
             changes: {a: {oldValue: 1, newValue: 2}},
         });
+
         global.simulateStorageChanges({
             storage: isolatedStorage,
             changes: {a: {oldValue: 1, newValue: 2}},
@@ -1037,6 +1066,7 @@ describe("watch and subscribe methods", () => {
             oldValue: "light",
             newValue: "dark",
         });
+
         unsubscribe();
 
         await flushMacrotask();
@@ -1061,9 +1091,11 @@ describe("watch and subscribe methods", () => {
     test("watch callback errors are uncaught without stopping sibling handlers or future events", async () => {
         const errors = captureUnhandledErrors();
         const failure = new Error("watch failed");
+
         const themeCallback = jest.fn(() => {
             throw failure;
         });
+
         const volumeCallback = jest.fn();
         const unsubscribe = storage.watch({theme: themeCallback, volume: volumeCallback});
 
@@ -1196,6 +1228,7 @@ describe("watch and subscribe methods", () => {
             oldValue: "light",
             newValue: "dark",
         });
+
         global.simulateStorageChange({
             storage,
             key: "volume",
@@ -1221,6 +1254,7 @@ describe("watch and subscribe methods", () => {
             oldValue: "light",
             newValue: "dark",
         });
+
         global.simulateStorageChange({
             storage,
             key: "volume",
@@ -1257,10 +1291,12 @@ describe("static factory methods", () => {
                 const syncAll = await getAllFromArea("sync");
                 expect(syncAll["a"]).toBeUndefined();
             }
+
             if (hasArea("managed")) {
                 const managedAll = await getAllFromArea("managed");
                 expect(managedAll["a"]).toBeUndefined();
             }
+
             if (hasArea("session")) {
                 const sessionAll = await getAllFromArea("session");
                 expect(sessionAll["a"]).toBeUndefined();
@@ -1293,6 +1329,7 @@ describe("static factory methods", () => {
             if (!hasArea("sync")) {
                 return; // environment doesn't support sync in this mock version
             }
+
             const s = Storage.Sync();
             expect(s).toBeInstanceOf(Storage);
             await (s as Storage<any>).set("x" as any, 10 as any);
@@ -1314,6 +1351,7 @@ describe("static factory methods", () => {
             if (!hasArea("managed")) {
                 return;
             }
+
             const s = Storage.Managed();
             expect(s).toBeInstanceOf(Storage);
             await (s as Storage<any>).set("m" as any, 7 as any);
@@ -1329,6 +1367,7 @@ describe("static factory methods", () => {
             if (!hasArea("session")) {
                 return;
             }
+
             const s = Storage.Session<{s?: number}>();
             expect(s).toBeInstanceOf(Storage);
             await (s as Storage<any>).set("s" as any, 5 as any);

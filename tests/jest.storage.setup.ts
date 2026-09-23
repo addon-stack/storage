@@ -1,7 +1,9 @@
-import "jest-webextension-mock";
 import {TextDecoder, TextEncoder} from "util";
+
+import "jest-webextension-mock";
+
 import {flushMacrotask} from "./helpers/async";
-import {createWebLocksMock} from "./helpers/webLocks";
+import {createWebLocksMock} from "./helpers/web-locks";
 
 type Listener = (changes: Record<string, chrome.storage.StorageChange>, areaName: chrome.storage.AreaName) => void;
 
@@ -42,6 +44,7 @@ const createStorageArea = (): chrome.storage.StorageArea => {
 
         return Object.entries(keys).reduce<Record<string, any>>((acc, [key, fallbackValue]) => {
             setRecordValue(acc, key, hasOwn(data, key) ? data[key] : fallbackValue);
+
             return acc;
         }, {});
     };
@@ -52,11 +55,13 @@ const createStorageArea = (): chrome.storage.StorageArea => {
 
             if (typeof keys === "function") {
                 keys(result);
+
                 return;
             }
 
             if (callback) {
                 callback(result);
+
                 return;
             }
 
@@ -65,11 +70,13 @@ const createStorageArea = (): chrome.storage.StorageArea => {
         getBytesInUse: jest.fn((keys?: any, callback?: (bytesInUse: number) => void) => {
             if (typeof keys === "function") {
                 keys(0);
+
                 return;
             }
 
             if (callback) {
                 callback(0);
+
                 return;
             }
 
@@ -88,6 +95,7 @@ const createStorageArea = (): chrome.storage.StorageArea => {
 
             if (callback) {
                 callback();
+
                 return;
             }
 
@@ -102,6 +110,7 @@ const createStorageArea = (): chrome.storage.StorageArea => {
 
             if (callback) {
                 callback();
+
                 return;
             }
 
@@ -112,6 +121,7 @@ const createStorageArea = (): chrome.storage.StorageArea => {
 
             if (callback) {
                 callback();
+
                 return;
             }
 
@@ -120,6 +130,7 @@ const createStorageArea = (): chrome.storage.StorageArea => {
         setAccessLevel: jest.fn((_accessLevel: any, callback?: () => void) => {
             if (callback) {
                 callback();
+
                 return;
             }
 
@@ -130,6 +141,7 @@ const createStorageArea = (): chrome.storage.StorageArea => {
 
             if (callback) {
                 callback(keys);
+
                 return;
             }
 
@@ -229,6 +241,7 @@ global.simulateSecureStorageChanges = async ({storage, changes, areaName = "loca
 // Pull Request with bug fix - https://github.com/RickyMarou/jest-webextension-mock/pull/19
 global.storageLocalGet = (key: string | string[], storage?: object): Promise<any> => {
     const formatKey = (k: string) => (storage ? (storage as any)["getFullKey"](k) : k);
+
     return new Promise(resolve => {
         chrome.storage.local.get(null, res => {
             resolve(
@@ -296,6 +309,7 @@ cryptoMock.getRandomValues.mockImplementation((array: Array<any>) => {
     for (let i = 0; i < array.length; i++) {
         array[i] = Math.floor(Math.random() * 256);
     }
+
     return array;
 });
 

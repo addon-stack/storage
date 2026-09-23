@@ -1,4 +1,3 @@
-export {default as useStorage} from "./useStorage";
 export type {
     UseStorageBatchOptions,
     UseStorageBatchReturnValue,
@@ -9,3 +8,4 @@ export type {
     UseStorageSingleOptions,
     UseStorageState,
 } from "./types";
+export {default as useStorage} from "./use-storage";

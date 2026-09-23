@@ -5,7 +5,7 @@ interface BatchState {
     label?: string;
     settings?: {enabled: boolean};
     missing?: string;
-    "__proto__"?: string;
+    __proto__?: string;
     constructor?: string;
     toString?: string;
     valueOf?: string;
@@ -18,6 +18,7 @@ describe("planBatchUpdate", () => {
             label: "before",
             settings: {enabled: true},
         };
+
         const patch = {
             count: 1,
             label: "after",
@@ -38,16 +39,19 @@ describe("planBatchUpdate", () => {
             valuesToSet: {label: "after"},
             keysToRemove: [],
         });
+
         expect(previous).toEqual({
             count: 1,
             label: "before",
             settings: {enabled: true},
         });
+
         expect(patch).toEqual({count: 1, label: "after"});
     });
 
     test("removes an existing key without scheduling removal for an absent key", () => {
         const previous: Partial<Pick<BatchState, "label" | "missing">> = {label: "stored"};
+
         const patch: Partial<Pick<BatchState, "label" | "missing">> = {
             label: undefined,
             missing: undefined,
@@ -64,6 +68,7 @@ describe("planBatchUpdate", () => {
             valuesToSet: {},
             keysToRemove: ["label"],
         });
+
         expect(previous).toEqual({label: "stored"});
         expect(Object.keys(patch)).toEqual(["label", "missing"]);
     });
@@ -80,6 +85,7 @@ describe("planBatchUpdate", () => {
 
         expect(compare).toHaveBeenCalledTimes(1);
         expect(compare).toHaveBeenCalledWith({count: 1, label: "same"}, {count: 2, label: "same"});
+
         expect(plan).toEqual({
             next: {count: 1, label: "same"},
             valuesToSet: {},
@@ -99,6 +105,7 @@ describe("planBatchUpdate", () => {
 
         expect(compare).toHaveBeenCalledTimes(1);
         expect(compare).toHaveBeenCalledWith({count: 1, label: "same"}, {count: 1, label: "same"});
+
         expect(plan).toEqual({
             next: {count: 1, label: "same"},
             valuesToSet: {count: 1, label: "same"},
@@ -117,6 +124,7 @@ describe("planBatchUpdate", () => {
         );
 
         expect(compare).toHaveBeenCalledWith({count: 1, label: "stored"}, {count: 1});
+
         expect(plan).toEqual({
             next: {count: 1},
             valuesToSet: {count: 1},
@@ -126,9 +134,11 @@ describe("planBatchUpdate", () => {
 
     test("aggregate comparer receives defensive snapshots that cannot change the plan", () => {
         type Snapshot = Readonly<Partial<Pick<BatchState, "count" | "label">>>;
+
         const compare = jest.fn((previous: Snapshot, next: Snapshot) => {
             (previous as Partial<BatchState>).count = 99;
             (next as Partial<BatchState>).label = "mutated";
+
             return false;
         });
 
@@ -152,6 +162,7 @@ describe("planBatchUpdate", () => {
         const plan = planBatchUpdate<BatchState, "count">(["count"], {count: 1}, {}, compare);
 
         expect(compare).toHaveBeenCalledWith({count: 1}, {count: 1});
+
         expect(plan).toEqual({
             next: {count: 1},
             valuesToSet: {},
@@ -176,6 +187,7 @@ describe("planBatchUpdate", () => {
                 compare
             )
         ).toThrow('Storage batch updater returned an unrequested key: "label".');
+
         expect(compare).not.toHaveBeenCalled();
     });
 
@@ -192,6 +204,7 @@ describe("planBatchUpdate", () => {
                 value: `old-${key}`,
                 writable: true,
             });
+
             Object.defineProperty(patch, key, {
                 configurable: true,
                 enumerable: true,

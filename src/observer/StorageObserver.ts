@@ -1,9 +1,11 @@
 import {dequal} from "dequal/lite";
+
 import Storage from "../providers/Storage";
 import {createRecord, hasOwn, setRecordValue} from "../utils";
-import {StorageStatus} from "./types";
+
+import {type StorageObserverDriver, type StorageObserverScope, type StorageObserverSnapshot, StorageStatus} from "./types";
+
 import type {StorageChanges, StorageState} from "../types";
-import type {StorageObserverDriver, StorageObserverScope, StorageObserverSnapshot} from "./types";
 
 interface KeySnapshot {
     value: unknown;
@@ -35,9 +37,11 @@ const empty: KeySnapshot = {
 const resolveSnapshot = (previous: KeySnapshot, value: unknown): KeySnapshot => {
     const equal = dequal(previous.value, value);
     const exists = value !== undefined;
+
     if (equal && previous.exists === exists && previous.status === StorageStatus.Ready) {
         return previous;
     }
+
     return {
         ...previous,
         value: equal ? previous.value : value,
@@ -68,18 +72,23 @@ export class StorageObserver<State extends StorageState = StorageState> {
     ): StorageObserver<State> {
         if (!provider) {
             StorageObserver.defaultObserver ??= new StorageObserver<State>();
+
             return StorageObserver.defaultObserver;
         }
+
         let observer = StorageObserver.observers.get(provider);
+
         if (!observer) {
             observer = new StorageObserver(provider);
             StorageObserver.observers.set(provider, observer);
         }
+
         return observer;
     }
 
     private getProvider(): StorageObserverDriver<State> {
         this.provider ??= Storage.Local<State>();
+
         return this.provider;
     }
 
@@ -95,6 +104,7 @@ export class StorageObserver<State extends StorageState = StorageState> {
         }
 
         const connection = ++this.connection;
+
         try {
             const stop = this.getProvider().subscribe(
                 changes => {
@@ -110,6 +120,7 @@ export class StorageObserver<State extends StorageState = StorageState> {
                     },
                 }
             );
+
             if (connection === this.connection) {
                 this.stop = stop;
             } else {
@@ -125,27 +136,33 @@ export class StorageObserver<State extends StorageState = StorageState> {
         ++this.connection;
         this.stop?.();
         this.stop = undefined;
+
         for (const entry of this.entries.values()) {
             ++entry.readId;
             entry.pending = undefined;
             entry.snapshot = {...entry.snapshot, status: StorageStatus.Error, error};
         }
+
         this.notify();
     }
 
     private acceptChanges(changes: StorageChanges): void {
         let changed = false;
+
         for (const key of Object.keys(changes)) {
             const entry = this.entries.get(key);
             const change = changes[key];
+
             if (!entry || !change) {
                 continue;
             }
+
             ++entry.revision;
             const previous = entry.snapshot;
             entry.snapshot = resolveSnapshot(previous, change.newValue);
             changed ||= entry.snapshot !== previous;
         }
+
         if (changed) {
             this.notify();
         }
@@ -154,6 +171,7 @@ export class StorageObserver<State extends StorageState = StorageState> {
     private retain(keys: readonly string[]): () => void {
         for (const key of keys) {
             let entry = this.entries.get(key);
+
             if (!entry) {
                 entry = {
                     snapshot: this.failure ? {...empty, status: StorageStatus.Error, error: this.failure.error} : empty,
@@ -162,23 +180,31 @@ export class StorageObserver<State extends StorageState = StorageState> {
                     readId: 0,
                     mutationId: 0,
                 };
+
                 this.entries.set(key, entry);
             }
+
             ++entry.users;
         }
+
         this.connect();
         let released = false;
+
         return () => {
             if (released) {
                 return;
             }
+
             released = true;
+
             for (const key of keys) {
                 const entry = this.entries.get(key);
+
                 if (entry) {
                     --entry.users;
                 }
             }
+
             // Reuse the current read and subscription when consumers reconnect in the same turn.
             void Promise.resolve().then(() => {
                 for (const [key, entry] of this.entries) {
@@ -186,6 +212,7 @@ export class StorageObserver<State extends StorageState = StorageState> {
                         this.entries.delete(key);
                     }
                 }
+
                 if (this.entries.size === 0) {
                     ++this.connection;
                     this.stop?.();
@@ -200,28 +227,38 @@ export class StorageObserver<State extends StorageState = StorageState> {
         if (this.failure) {
             throw this.failure.error;
         }
+
         const waiting: Promise<void>[] = [];
+
         const requests = keys.flatMap(key => {
             const entry = this.entries.get(key);
+
             if (!entry) {
                 return [];
             }
+
             if (!force) {
                 if (entry.pending) {
                     waiting.push(entry.pending);
+
                     return [];
                 }
+
                 if (entry.snapshot.status === StorageStatus.Ready) {
                     return [];
                 }
             }
+
             if (entry.snapshot.status === StorageStatus.Error && entry.snapshot.exists === undefined) {
                 entry.snapshot = {...entry.snapshot, status: StorageStatus.Loading, error: undefined};
             }
+
             return [{key, entry, revision: entry.revision, readId: ++entry.readId}];
         });
+
         if (requests.length === 0) {
             await Promise.all(waiting);
+
             return;
         }
 
@@ -231,13 +268,16 @@ export class StorageObserver<State extends StorageState = StorageState> {
         const pending = Promise.resolve().then(async () => {
             try {
                 const values = await this.getProvider().get(requests.map(({key}) => key));
+
                 if (this.failure) {
                     throw this.failure.error;
                 }
+
                 for (const request of requests) {
                     if (!isCurrent(request)) {
                         continue;
                     }
+
                     const {key, entry} = request;
                     const value = hasOwn(values, key) ? values[key] : undefined;
                     entry.snapshot = resolveSnapshot(entry.snapshot, value);
@@ -252,6 +292,7 @@ export class StorageObserver<State extends StorageState = StorageState> {
                         };
                     }
                 }
+
                 throw error;
             } finally {
                 for (const {entry} of requests) {
@@ -259,18 +300,22 @@ export class StorageObserver<State extends StorageState = StorageState> {
                         entry.pending = undefined;
                     }
                 }
+
                 this.notify();
             }
         });
+
         for (const {entry} of requests) {
             entry.pending = pending;
         }
+
         this.notify();
         await Promise.all([...waiting, pending]);
     }
 
     async refresh(keys: readonly (keyof State & string)[]): Promise<void> {
         const release = this.retain(keys);
+
         try {
             this.failure = undefined;
             this.connect();
@@ -287,15 +332,19 @@ export class StorageObserver<State extends StorageState = StorageState> {
         const release = this.retain(keys);
         const mutationId = ++this.mutationId;
         const entries = keys.map(key => this.entries.get(key) as Entry);
+
         for (const entry of entries) {
             entry.mutationId = mutationId;
+
             entry.snapshot = {
                 ...entry.snapshot,
                 pendingMutationCount: entry.snapshot.pendingMutationCount + 1,
                 mutationError: undefined,
             };
         }
+
         this.notify();
+
         try {
             return await operation(this.getProvider());
         } catch (error) {
@@ -304,14 +353,17 @@ export class StorageObserver<State extends StorageState = StorageState> {
                     entry.snapshot = {...entry.snapshot, mutationError: error};
                 }
             }
+
             throw error;
         } finally {
             // Re-read actual storage, including partial writes. Read errors belong to
             // `error`; they must not replace a mutation's result or original error.
             await this.refresh(keys).catch(() => undefined);
+
             for (const entry of entries) {
                 entry.snapshot = {...entry.snapshot, pendingMutationCount: entry.snapshot.pendingMutationCount - 1};
             }
+
             this.notify();
             release();
         }
@@ -320,45 +372,56 @@ export class StorageObserver<State extends StorageState = StorageState> {
     select(keys: readonly (keyof State & string)[]): StorageObserverScope {
         let previous: KeySnapshot[] | undefined;
         let cachedSnapshot: StorageObserverSnapshot;
+
         const snapshot = (): StorageObserverSnapshot => {
             if (previous) {
                 let unchanged = true;
+
                 for (let index = 0; index < keys.length; ++index) {
                     if ((this.entries.get(keys[index])?.snapshot ?? empty) !== previous[index]) {
                         unchanged = false;
                         break;
                     }
                 }
+
                 if (unchanged) {
                     return cachedSnapshot;
                 }
             }
+
             const states = keys.map(key => this.entries.get(key)?.snapshot ?? empty);
             previous = states;
             const value = createRecord<Record<string, unknown>>();
             const exists = createRecord<Record<string, boolean | undefined>>();
+
             keys.forEach((key, index) => {
                 const state = states[index];
+
                 if (state.exists) {
                     setRecordValue(value, key, state.value);
                 }
+
                 setRecordValue(exists, key, state.exists);
             });
+
             const failed = states.find(state => state.status === StorageStatus.Error);
+
             cachedSnapshot = {
                 value,
                 exists,
                 status: failed
                     ? StorageStatus.Error
                     : states.some(state => state.status === StorageStatus.Loading)
-                      ? StorageStatus.Loading
-                      : StorageStatus.Ready,
+                        ? StorageStatus.Loading
+                        : StorageStatus.Ready,
                 error: failed?.error,
                 isMutating: states.some(state => state.pendingMutationCount > 0),
                 mutationError: states.find(state => state.mutationError !== undefined)?.mutationError,
             };
+
             return cachedSnapshot;
         };
+
         return {
             snapshot,
             subscribe: (listener: () => void) => {
@@ -370,6 +433,7 @@ export class StorageObserver<State extends StorageState = StorageState> {
                 this.failure = undefined;
                 const release = this.retain(keys);
                 void this.read(retryKeys, false).catch(() => undefined);
+
                 return () => {
                     this.listeners.delete(notify);
                     release();

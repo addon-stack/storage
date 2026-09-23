@@ -1,7 +1,7 @@
 import {
     SecureStorage,
-    Storage,
     type SecureStorageOptions,
+    Storage,
     type StorageOptions,
     type StorageProvider,
 } from "../src";
@@ -18,18 +18,22 @@ const secureMake: StorageProvider<State> = SecureStorage.make<State>({
     namespace: "auth",
     secureKey: "AppSecret",
 });
+
 const secureLocal: StorageProvider<State> = SecureStorage.Local<State>({
     namespace: "auth",
     secureKey: "AppSecret",
 });
+
 const secureSession: StorageProvider<State> = SecureStorage.Session<State>({
     namespace: "auth",
     secureKey: "AppSecret",
 });
+
 const secureSync: StorageProvider<State> = SecureStorage.Sync<State>({
     namespace: "auth",
     secureKey: "AppSecret",
 });
+
 const secureManaged: StorageProvider<State> = SecureStorage.Managed<State>({
     namespace: "auth",
     secureKey: "AppSecret",
@@ -39,6 +43,7 @@ const storageOptions: StorageOptions = {
     area: "session",
     namespace: "settings",
 };
+
 const secureStorageOptions: SecureStorageOptions = {
     area: "sync",
     namespace: "auth",

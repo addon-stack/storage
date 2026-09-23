@@ -29,7 +29,7 @@ We value clarity, automation, and a predictable release cadence. We use:
 - Simplified GitFlow (no release/* or hotfix/* branches) for branching and release discipline.
 - Conventional Commits to generate CHANGELOG and calculate version bumps.
 - release-it to cut releases and publish to npm and GitHub.
-- Biome for formatting and linting; Jest for tests.
+- ESLint for formatting and linting; Jest for tests.
 
 ## Git branching model (Simplified GitFlow)
 We follow a simplified GitFlow:
@@ -116,25 +116,64 @@ Important:
 - We do not use `release/*` or `hotfix/*` branches.
 
 ## Code style and quality
-We use [Biome](https://biomejs.dev/) for formatting and linting. Key rules from `biome.json`:
-- Formatting: 4 spaces, line width 120, double quotes, semicolons, ES5 trailing commas.
-- Import organization enabled.
-- Linting: recommended rules on; `noExplicitAny` is disabled; provider base file may be lint-disabled where needed.
+We use [ESLint](https://eslint.org/) with TypeScript support and
+[ESLint Stylistic](https://eslint.style/). The single configuration is `eslint.config.js`.
+
+Formatting and lint rules:
+- Four-space indentation, double quotes (except when escaping would be needed), semicolons, and LF line endings.
+- No spaces inside object/import braces. Parentheses around a single untyped arrow parameter are omitted when possible.
+- Trailing commas in multiline arrays, objects, imports, exports, enums, tuples, and type parameters, but not function arguments.
+- One blank line before `return` and before/after `if`, `for`, `while`, `do`, and `switch` statements.
+- One blank line around multiline statements and declarations (`project/padding-around-multiline`).
+  This separates neighboring statements, without adding padding at file/block boundaries or between arguments,
+  object/type/class members, imports, or re-exports in the same group. Comments stay with their statements.
+- At most one consecutive blank line; no trailing whitespace. Imports and re-exports are sorted.
+- Import groups (`project/import-order`, based on `simple-import-sort`), separated by one blank line:
+  Node.js builtins → React and React DOM → external packages → current-directory dependencies (`./...`) →
+  other internal dependencies → current-directory `./types` → root `src/types` → styles and assets.
+  Groups follow the source module, including mixed type/value imports. Root types are recognized relative to each file.
+- Imports from the same module are combined (`project/no-duplicate-imports`, based on `import-x/no-duplicates`), with inline `type` specifiers for types:
+  `import {type StorageObserverSnapshot, StorageStatus} from "./types";`.
+  This applies to any imported values, including functions, constants, classes, and enums.
+  A module used only for types uses a single `import type` declaration. Explicit side-effect imports are preserved.
+  Long imports may span multiple lines. Imports with attached comments may require a manual merge.
+- Recommended JavaScript/TypeScript checks. Explicit `any` is allowed; unused parameters, catch bindings, and
+  variables prefixed with `_` are allowed. Other unused bindings are reported rather than silently deleted.
+- Compile-only fixtures (`tests/**/*.types.ts`) allow unused bindings and expressions used as type assertions.
+  The release policy test may require its CommonJS `.release-it.cjs` configuration. These exceptions do not apply to source files.
+- JSON/JSONC use two-space indentation and expanded nonempty objects/arrays. JSON is strict; JSONC permits comments.
+- A 120-column width remains a readability guideline. ESLint does not wrap arbitrary long expressions automatically.
+
+Filename rules (`project/file-naming`):
+- A module defining and exporting a regular class uses that class's PascalCase name, such as `Storage.ts`.
+  Multiple exported classes belong in separate matching files. Re-export barrels may keep names such as `index.ts`.
+- Exception classes extending `Error` (including native subclasses and local inheritance chains) may stay in their owning module.
+- Other files use kebab-case, such as `use-storage.ts` and `web-locks.ts`.
+- Tests use the subject's casing: `Storage.test.ts` or `use-storage.test.ts`.
+  Dot-separated suffixes such as `.integration.test`, `.config`, and `.d` stay lowercase.
+- Standard metadata names (`README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`,
+  `LICENSE`, `LICENSE.md`, and `AGENTS.md`) are exempt.
+- Non-code files participate only in filename checks; Markdown/YAML content is not formatted.
+  Renames require updating imports and links. Dependencies, build output, coverage, the lockfile, and local editor/environment files are excluded.
 
 Commands:
-- Format (check): `npm run format:check`
-- Format (write): `npm run format`
-- Lint (check): `npm run lint`
-- Lint (fix): `npm run lint:fix` or `npm run lint:fix:unsafe`
+- Check linting and formatting without editing: `npm run lint` (errors and warnings fail).
+- Apply available lint/format fixes: `npm run fix`.
+- Fix staged files: `npm run lint:staged`.
 - Type-check: `npm run typecheck`
 
-Pre-commit hooks:
-- We use Husky + lint-staged. Staged files are formatted and related tests run automatically.
+Git hooks:
+- Pre-commit runs `npm run lint:staged`, then `npm run test:all`.
+  `lint-staged` applies fixes to staged files and automatically stages those fixes. Unstaged portions of partially
+  staged files are hidden during formatting and restored afterward without being added to the commit.
+- Non-fixable lint errors (including filename errors) stop the commit; lint-staged restores its pre-lint state on task failure.
+  If tests fail after formatting succeeds, the fixes remain staged for review. Tests run against the working tree.
+- Pre-push runs lint, typecheck, unit tests with coverage, tooling tests, and build without fixing source files.
 - Commit messages are validated by commitlint.
 
 ## Local development
 Prerequisites:
-- Node.js 20 (same as CI)
+- Node.js 20.9 or newer (the default CI job uses Node.js 20)
 - npm (or your preferred package manager)
 
 Setup:
@@ -148,10 +187,17 @@ Project layout:
 - Build artifacts: `dist/`
 
 ## Running tests
-We use Jest with jsdom and WebExtensions mocks.
-- Run tests: `npm test`
-- CI mode: `npm run test:ci`
-- Only affected tests for staged changes (via lint-staged): `npm run test:related`
+Unit tests use Jest + SWC with jsdom and WebExtensions mocks. Tooling tests run separately in Node's ESM environment
+using `jest.tooling.config.js`; `test:tooling` supplies the required `--experimental-vm-modules` flag.
+- Unit tests: `npm test` (Jest arguments can be passed after `--`).
+- Formatting, naming, and Git-hook regression tests: `npm run test:tooling`.
+- Both suites, including the pre-commit checks: `npm run test:all`.
+- CI mode, including unit coverage and tooling tests: `npm run test:ci`.
+- Unit tests related to specific files: `npm run test:related -- src/watch.ts`.
+- Published consumer declarations: `npm run test:consumer-types`.
+
+Hook tests use temporary Git clones to verify staging, partial staging, rollback, and ignored files without changing
+the current checkout's Git state. Configuration tests also check that a second formatting pass makes no further edits.
 
 Authoring tests:
 - Prefer black-box tests for the public API (@addon-core/storage, providers, React adapter).
@@ -161,7 +207,7 @@ Authoring tests:
 Checklist for contributors:
 - [ ] Branch from `develop`.
 - [ ] Follow code style and run locally:
-  - `npm run format:check && npm run lint && npm run typecheck && npm test`
+  - `npm run lint && npm run typecheck && npm run test:all && npm run build`
 - [ ] Write or update tests when applicable.
 - [ ] Use Conventional Commits for each commit; prefer small, focused commits.
 - [ ] Update docs (README, examples) if the public API changes.

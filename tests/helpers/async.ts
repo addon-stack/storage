@@ -6,9 +6,11 @@ export interface UnhandledErrorCapture {
 
 export const captureUnhandledErrors = (): UnhandledErrorCapture => {
     const scheduled: VoidFunction[] = [];
+
     const queueMicrotaskSpy = jest
         .spyOn(globalThis, "queueMicrotask")
         .mockImplementation(callback => scheduled.push(callback));
+
     let restored = false;
 
     return {

@@ -1,7 +1,3 @@
-import MonoStorage from "../providers/MonoStorage";
-import SecureStorage from "../providers/SecureStorage";
-import Storage from "../providers/Storage";
-import type {StorageHelper} from "../types";
 import {
     storage,
     storageLocal,
@@ -10,6 +6,12 @@ import {
     storageSession,
     storageSync,
 } from "./storage";
+
+import MonoStorage from "../providers/MonoStorage";
+import SecureStorage from "../providers/SecureStorage";
+import Storage from "../providers/Storage";
+
+import type {StorageHelper} from "../types";
 
 const areas = ["local", "session", "sync", "managed"] as const;
 
@@ -53,6 +55,7 @@ test("supports one-shot single set, single get, and batch get", async () => {
 
     await expect(storageLocal<string>("theme")).resolves.toBe("dark");
     await expect(storageLocal<number>("missing")).resolves.toBeUndefined();
+
     await expect(storageLocal(["theme", "attempts", "missing"] as const)).resolves.toEqual({
         attempts: 3,
         theme: "dark",
@@ -80,6 +83,7 @@ test("storage accepts area while area-specific helpers reject it", async () => {
     await sync.set("theme", "dark");
 
     await expect(getAreaValues("sync")).resolves.toMatchObject({"settings:theme": "dark"});
+
     expect(() => (storageLocal as any)({area: "sync"})).toThrow(
         'storageLocal options contain an unsupported property "area".'
     );
@@ -87,12 +91,15 @@ test("storage accepts area while area-specific helpers reject it", async () => {
 
 test("forwards namespace, key, and locker options to existing factories", async () => {
     const requests: string[] = [];
+
     const locker = {
         async request<T>(name: string, task: () => Promise<T>): Promise<T> {
             requests.push(name);
+
             return await task();
         },
     };
+
     const namespaced = storageLocal<{count?: number}>({locker, namespace: "feature"});
     const mono = storageLocal<{theme?: string}>({key: "settings"});
 
@@ -100,6 +107,7 @@ test("forwards namespace, key, and locker options to existing factories", async 
     await mono.set("theme", "dark");
 
     expect(requests).toEqual(["feature:count"]);
+
     await expect(getAreaValues("local")).resolves.toMatchObject({
         "feature:count": 1,
         settings: {theme: "dark"},
@@ -123,14 +131,17 @@ test("rejects unknown options instead of treating an object as batch set", () =>
     expect(() => (storageLocal as any)({theme: "dark"})).toThrow(
         'storageLocal options contain an unsupported property "theme".'
     );
+
     expect(chrome.storage.local.set).not.toHaveBeenCalled();
 });
 
 test("rejects invalid batch keys, set keys, and arity", () => {
     expect(() => (storageLocal as any)(["theme", 1])).toThrow("storageLocal batch get keys must be strings.");
+
     expect(() => (storageLocal as any)(["theme"], "dark")).toThrow(
         "storageLocal set key must be a string."
     );
+
     expect(() => (storageLocal as any)("theme", "dark", true)).toThrow(
         "storageLocal expects zero, one, or two arguments."
     );
@@ -140,6 +151,7 @@ test("routes explicit undefined through set validation without native I/O", asyn
     await expect((storageLocal as any)("theme", undefined)).rejects.toThrow(
         "Storage set value must not be undefined."
     );
+
     expect(chrome.storage.local.set).not.toHaveBeenCalled();
 });
 
@@ -155,6 +167,7 @@ test("supports typed one-shot set and get with the default secure provider", asy
 
 test("forwards area, namespace, and secureKey", async () => {
     const digestSpy = crypto.subtle.digest as jest.Mock;
+
     const auth = storageSecure<{token?: string}>({
         area: "session",
         namespace: "auth",
@@ -186,6 +199,7 @@ test("rejects unknown secure options before encryption or native I/O", () => {
     expect(() => (storageSecure as any)({token: "secret"})).toThrow(
         'storageSecure options contain an unsupported property "token".'
     );
+
     expect(crypto.subtle.encrypt).not.toHaveBeenCalled();
     expect(chrome.storage.local.set).not.toHaveBeenCalled();
 });

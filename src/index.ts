@@ -1,4 +1,9 @@
 export {StorageCorruptionError, StoragePartialUpdateError} from "./errors";
+export type {
+    SecureStorageHelperOptions,
+    StorageAreaHelperOptions,
+    StorageHelperOptions,
+} from "./helpers";
 export {
     storage,
     storageLocal,
@@ -9,13 +14,8 @@ export {
 } from "./helpers";
 export {WebLockManager} from "./locking";
 export {StorageStatus} from "./observer/types";
-export {MonoStorage, SecureStorage, Storage} from "./providers";
-export type {
-    SecureStorageHelperOptions,
-    StorageAreaHelperOptions,
-    StorageHelperOptions,
-} from "./helpers";
 export type {SecureStorageOptions, StorageOptions} from "./providers";
+export {MonoStorage, SecureStorage, Storage} from "./providers";
 export type {
     StorageBatchPatch,
     StorageBatchSnapshot,

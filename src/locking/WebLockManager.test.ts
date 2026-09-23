@@ -1,5 +1,6 @@
-import {createWebLocksMock, type WebLocksMock} from "../../tests/helpers/webLocks";
 import WebLockManager from "./WebLockManager";
+
+import {createWebLocksMock, type WebLocksMock} from "../../tests/helpers/web-locks";
 
 class TestWebLockManager extends WebLockManager {
     constructor(private readonly locks: WebLocksMock) {
@@ -22,6 +23,7 @@ describe("createWebLocksMock", () => {
         await expect(locks.request("implicit", lock => `${lock?.name}:${lock?.mode}`)).resolves.toBe(
             "implicit:exclusive"
         );
+
         await expect(
             locks.request("explicit", {mode: "shared"}, lock => `${lock?.name}:${lock?.mode}`)
         ).resolves.toBe("explicit:shared");
@@ -35,8 +37,10 @@ describe("createWebLocksMock", () => {
         const firstStarted = new Promise<void>(resolve => {
             markFirstStarted = resolve;
         });
+
         const first = locks.request("settings", async () => {
             markFirstStarted?.();
+
             await new Promise<void>(resolve => {
                 releaseFirst = resolve;
             });
@@ -154,6 +158,7 @@ describe("WebLockManager", () => {
         await firstStarted;
 
         const controller = new AbortController();
+
         const abortedTask = lockManager.request(
             "settings",
             async () => {
@@ -256,6 +261,7 @@ describe("WebLockManager", () => {
 
         const controller = new AbortController();
         const removeEventListener = jest.spyOn(controller.signal, "removeEventListener");
+
         const waitingTask = lockManager.request("settings", async () => "unreachable", {
             signal: controller.signal,
             timeout: 1_000,
@@ -277,6 +283,7 @@ describe("WebLockManager", () => {
         const locks = {
             request: jest.fn().mockRejectedValue(new Error("Lock backend failed")),
         } as unknown as WebLocksMock;
+
         const lockManager = new TestWebLockManager(locks);
         const controller = new AbortController();
         const removeEventListener = jest.spyOn(controller.signal, "removeEventListener");

@@ -34,6 +34,7 @@ export const createWebLocksMock = (): WebLocksMock => {
         const current = new Promise<void>(resolve => {
             releaseCurrent = resolve;
         });
+
         const tail = previous.then(() => current);
 
         tails.set(name, tail);
@@ -45,6 +46,7 @@ export const createWebLocksMock = (): WebLocksMock => {
                 const cleanup = () => {
                     signal?.removeEventListener("abort", onAbort);
                 };
+
                 const resolveOnce = () => {
                     if (settled) {
                         return;
@@ -54,6 +56,7 @@ export const createWebLocksMock = (): WebLocksMock => {
                     cleanup();
                     resolve();
                 };
+
                 const rejectOnce = (reason: unknown) => {
                     if (settled) {
                         return;
@@ -63,6 +66,7 @@ export const createWebLocksMock = (): WebLocksMock => {
                     cleanup();
                     reject(reason);
                 };
+
                 const onAbort = () => rejectOnce(createAbortError());
 
                 signal?.addEventListener("abort", onAbort, {once: true});
@@ -71,6 +75,7 @@ export const createWebLocksMock = (): WebLocksMock => {
                     () => {
                         if (signal?.aborted) {
                             rejectOnce(createAbortError());
+
                             return;
                         }
 

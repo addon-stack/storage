@@ -23,6 +23,7 @@ declare const storage: StorageProvider<TypedState>;
 
 type Equal<Left, Right> =
     (<Value>() => Value extends Left ? 1 : 2) extends <Value>() => Value extends Right ? 1 : 2 ? true : false;
+
 type Expect<Value extends true> = Value;
 
 async function verifyOverloadTypes() {
@@ -47,6 +48,7 @@ async function verifyOverloadTypes() {
         async prev => prev ?? "light",
         {compare: (prev, next) => prev === next}
     );
+
     type SingleUpdateResult = Expect<Equal<typeof nextTheme, "light" | "dark" | undefined>>;
 
     const updated = await storage.update(
@@ -63,6 +65,7 @@ async function verifyOverloadTypes() {
                 type BatchComparePrev = Expect<
                     Equal<typeof prev, Readonly<Partial<Pick<TypedState, "count" | "enabled">>>>
                 >;
+
                 type BatchCompareNext = Expect<
                     Equal<typeof next, Readonly<Partial<Pick<TypedState, "count" | "enabled">>>>
                 >;
@@ -74,6 +77,7 @@ async function verifyOverloadTypes() {
             },
         }
     );
+
     type BatchUpdateResult = Expect<Equal<typeof updated, Partial<Pick<TypedState, "count" | "enabled">>>>;
 
     updated.count?.toFixed();
@@ -83,11 +87,13 @@ async function verifyOverloadTypes() {
         changes.count?.newValue?.toFixed();
         changes.theme?.oldValue?.toUpperCase();
     };
+
     const unsubscribe = storage.subscribe(changes => {
         type SubscriberChanges = Expect<Equal<typeof changes, StorageChanges<TypedState>>>;
 
         subscriber(changes);
     });
+
     type UnsubscribeResult = Expect<Equal<typeof unsubscribe, () => void>>;
     unsubscribe();
 
@@ -101,23 +107,28 @@ async function verifyOverloadTypes() {
             type WatchPrev = Expect<Equal<typeof prev, "light" | "dark" | undefined>>;
         },
     });
+
     type UnwatchResult = Expect<Equal<typeof unwatch, () => void>>;
     unwatch();
 
     const batchUpdater: StorageBatchUpdater<TypedState, "count" | "enabled"> = prev => ({
         count: prev.count,
     });
+
     type BatchSnapshot = Expect<
         Equal<
             StorageBatchSnapshot<TypedState, "count" | "enabled">,
             Readonly<Partial<Pick<TypedState, "count" | "enabled">>>
         >
     >;
+
     const batchComparer: StorageBatchUpdateComparer<TypedState, "count" | "enabled"> = (prev, next) =>
         prev.count === next.count && prev.enabled === next.enabled;
+
     const batchOptions: StorageBatchUpdateOptions<TypedState, "count" | "enabled"> = {
         compare: batchComparer,
     };
+
     await storage.update(["count", "enabled"] as const, batchUpdater, batchOptions);
 
     void (null as unknown as BatchSnapshot);
@@ -128,6 +139,7 @@ async function verifyOverloadTypes() {
             count: (prev: number | undefined, next: number | undefined) => prev === next,
         },
     };
+
     void invalidBatchOptions;
 
     // @ts-expect-error unknown single storage key

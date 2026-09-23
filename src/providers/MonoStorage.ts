@@ -1,4 +1,5 @@
 import {dequal as isEqual} from "dequal/lite";
+
 import {planBatchUpdate} from "../batch";
 import {StorageCorruptionError} from "../errors";
 import {
@@ -14,6 +15,7 @@ import {
     setRecordValue,
 } from "../utils";
 import {watchChanges} from "../watch";
+
 import type {
     StorageBatchUpdateOptions,
     StorageBatchUpdater,
@@ -38,8 +40,7 @@ import type {
 const isUnchangedBucket = (previousBucket: unknown, nextBucket: unknown): boolean => previousBucket === nextBucket;
 
 export default class MonoStorage<T extends StorageState = StorageState, K extends string = string>
-    implements StorageProvider<T>
-{
+implements StorageProvider<T> {
     constructor(
         public readonly key: K,
         protected readonly storage: StorageProvider<Record<K, Partial<T>>>
@@ -77,6 +78,7 @@ export default class MonoStorage<T extends StorageState = StorageState, K extend
         if (args.length === 1) {
             const values = prepareStorageSetValues<Partial<T>>(args[0]);
             await this.setBatch(values);
+
             return;
         }
 
@@ -205,6 +207,7 @@ export default class MonoStorage<T extends StorageState = StorageState, K extend
 
                 if (compareValue(previousValue, nextValue)) {
                     result = previousValue;
+
                     return bucketValue;
                 }
 
@@ -334,6 +337,7 @@ export default class MonoStorage<T extends StorageState = StorageState, K extend
             }
 
             dispose();
+
             if (options?.onError) {
                 invokeCallback(() => options.onError?.(error));
             } else {

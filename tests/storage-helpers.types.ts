@@ -1,20 +1,21 @@
 import * as storageApi from "../src";
 import {
-    storage,
-    storageLocal,
-    storageManaged,
-    storageSecure,
-    storageSession,
-    storageSync,
     type SecureStorageHelperOptions,
+    storage,
     type StorageAreaHelperOptions,
     type StorageHelper,
     type StorageHelperOptions,
+    storageLocal,
+    storageManaged,
     type StorageProvider,
+    storageSecure,
+    storageSession,
+    storageSync,
 } from "../src";
 
 type Equal<Left, Right> =
     (<Value>() => Value extends Left ? 1 : 2) extends <Value>() => Value extends Right ? 1 : 2 ? true : false;
+
 type Expect<Value extends true> = Value;
 type IsAny<Value> = 0 extends 1 & Value ? true : false;
 
@@ -29,6 +30,7 @@ const typedProvider = storageLocal<SettingsState>();
 const configuredProvider = storageSync<SettingsState>({namespace: "settings"});
 const genericAreaProvider = storage<SettingsState>({area: "session", namespace: "settings"});
 const monoProvider = storageLocal<SettingsState>({key: "settings"});
+
 const secureProvider = storageSecure<SettingsState>({
     area: "local",
     key: "settings",
@@ -58,6 +60,7 @@ void storageLocal<number>("attempts", "three");
 void storageLocal<string>("theme", undefined);
 
 const looseBatch = storageLocal(["theme", "attempts"] as const);
+
 const typedBatch = storageSync<{
     attempts?: number;
     theme?: "light" | "dark";
@@ -66,6 +69,7 @@ const typedBatch = storageSync<{
 type LooseBatch = Expect<
     Equal<Awaited<typeof looseBatch>, Partial<Record<"theme" | "attempts", any>>>
 >;
+
 type TypedBatch = Expect<
     Equal<
         Awaited<typeof typedBatch>,
@@ -76,6 +80,7 @@ type TypedBatch = Expect<
 const helper: StorageHelper<StorageAreaHelperOptions> = storageLocal;
 const generalOptions: StorageHelperOptions = {area: "sync", key: "settings"};
 const areaOptions: StorageAreaHelperOptions = {key: "settings", namespace: "feature"};
+
 const secureOptions: SecureStorageHelperOptions = {
     area: "session",
     secureKey: "AppSecret",
