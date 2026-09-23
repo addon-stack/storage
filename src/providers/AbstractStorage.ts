@@ -4,9 +4,9 @@ import {dequal as defaultCompare} from "dequal/lite";
 
 import MonoStorage from "./MonoStorage";
 
-import {planBatchUpdate} from "../batch";
-import {StoragePartialUpdateError} from "../errors";
-import {WebLockManager} from "../locking";
+import {planBatchUpdate} from "~/batch";
+import {StoragePartialUpdateError} from "~/errors";
+import {WebLockManager} from "~/locking";
 import {
     assertStorageKey,
     assertStorageNamespace,
@@ -20,8 +20,8 @@ import {
     prepareStorageSetValues,
     scheduleUnhandledError,
     setRecordValue,
-} from "../utils";
-import {watchChanges} from "../watch";
+} from "~/utils";
+import {watchChanges} from "~/watch";
 
 import type {
     StorageBatchUpdateOptions,
@@ -37,7 +37,7 @@ import type {
     StorageUpdateOptions,
     StorageUpdater,
     StorageWatchOptions,
-} from "../types";
+} from "~/types";
 
 const storage = () => browser().storage as typeof chrome.storage;
 

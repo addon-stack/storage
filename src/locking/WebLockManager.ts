@@ -1,4 +1,4 @@
-import type {StorageLocker, StorageLockOptions} from "../types";
+import type {StorageLocker, StorageLockOptions} from "~/types";
 
 interface LockRequestSignal {
     signal: AbortSignal | undefined;

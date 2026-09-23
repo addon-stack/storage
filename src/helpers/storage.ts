@@ -1,7 +1,7 @@
-import {SecureStorage, type SecureStorageOptions, Storage, type StorageOptions} from "../providers";
-import {isPlainObject} from "../utils";
+import {SecureStorage, type SecureStorageOptions, Storage, type StorageOptions} from "~/providers";
+import {isPlainObject} from "~/utils";
 
-import type {StorageHelper, StorageProvider, StorageState} from "../types";
+import type {StorageHelper, StorageProvider, StorageState} from "~/types";
 
 type StorageProviderFactory<Options extends object> = <State extends StorageState = StorageState>(
     options?: Options

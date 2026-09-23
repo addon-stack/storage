@@ -1,4 +1,4 @@
-import type {StorageObserverDriver, StorageStatus} from "../../observer/types";
+import type {StorageObserverDriver, StorageStatus} from "~/observer/types";
 
 import type {
     StorageBatchUpdateOptions,
@@ -8,7 +8,7 @@ import type {
     StorageState,
     StorageUpdateOptions,
     StorageUpdater,
-} from "../../types";
+} from "~/types";
 
 export type UseStorageProvider<State extends StorageState = StorageState> = StorageObserverDriver<State>;
 

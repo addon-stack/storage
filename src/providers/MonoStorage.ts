@@ -1,7 +1,7 @@
 import {dequal as isEqual} from "dequal/lite";
 
-import {planBatchUpdate} from "../batch";
-import {StorageCorruptionError} from "../errors";
+import {planBatchUpdate} from "~/batch";
+import {StorageCorruptionError} from "~/errors";
 import {
     assertStorageSetValue,
     copyRecord,
@@ -13,8 +13,8 @@ import {
     prepareStorageSetValues,
     scheduleUnhandledError,
     setRecordValue,
-} from "../utils";
-import {watchChanges} from "../watch";
+} from "~/utils";
+import {watchChanges} from "~/watch";
 
 import type {
     StorageBatchUpdateOptions,
@@ -29,7 +29,7 @@ import type {
     StorageUpdateOptions,
     StorageUpdater,
     StorageWatchOptions,
-} from "../types";
+} from "~/types";
 
 /**
  * Bucket updaters return the received `bucketValue` when nothing changed and a

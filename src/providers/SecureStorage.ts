@@ -5,11 +5,11 @@ import AbstractStorage, {
     type StorageOptions,
 } from "./AbstractStorage";
 
-import {STORAGE_KEY_SEPARATOR} from "../constants";
-import {StorageCorruptionError} from "../errors";
-import {createRecord, hasOwn, setRecordValue} from "../utils";
+import {STORAGE_KEY_SEPARATOR} from "~/constants";
+import {StorageCorruptionError} from "~/errors";
+import {createRecord, hasOwn, setRecordValue} from "~/utils";
 
-import type {StorageLockOptions, StorageProvider, StorageState} from "../types";
+import type {StorageLockOptions, StorageProvider, StorageState} from "~/types";
 
 type StorageChange = chrome.storage.StorageChange;
 

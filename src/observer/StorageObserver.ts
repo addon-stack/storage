@@ -1,11 +1,11 @@
 import {dequal} from "dequal/lite";
 
-import Storage from "../providers/Storage";
-import {createRecord, hasOwn, setRecordValue} from "../utils";
+import Storage from "~/providers/Storage";
+import {createRecord, hasOwn, setRecordValue} from "~/utils";
 
 import {type StorageObserverDriver, type StorageObserverScope, type StorageObserverSnapshot, StorageStatus} from "./types";
 
-import type {StorageChanges, StorageState} from "../types";
+import type {StorageChanges, StorageState} from "~/types";
 
 interface KeySnapshot {
     value: unknown;

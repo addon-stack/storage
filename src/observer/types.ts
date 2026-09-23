@@ -1,4 +1,4 @@
-import type {StorageProvider, StorageState} from "../types";
+import type {StorageProvider, StorageState} from "~/types";
 
 export enum StorageStatus {
     Loading = "loading",

@@ -1,8 +1,8 @@
 import AbstractStorage, {type StorageOptions} from "./AbstractStorage";
 
-import {STORAGE_KEY_SEPARATOR} from "../constants";
+import {STORAGE_KEY_SEPARATOR} from "~/constants";
 
-import type {StorageLockOptions, StorageState} from "../types";
+import type {StorageLockOptions, StorageState} from "~/types";
 
 export default class Storage<T extends StorageState = StorageState> extends AbstractStorage<T> {
     constructor(options: StorageOptions = {}) {

@@ -2,8 +2,8 @@ import {useMemo, useSyncExternalStore} from "react";
 
 import {dequal} from "dequal/lite";
 
-import {StorageObserver} from "../../observer";
-import {assertStorageKey, createRecord, hasOwn, isPlainObject, setRecordValue} from "../../utils";
+import {StorageObserver} from "~/observer";
+import {assertStorageKey, createRecord, hasOwn, isPlainObject, setRecordValue} from "~/utils";
 
 import type {
     StorageKey,
@@ -20,7 +20,7 @@ import type {
     StorageState,
     StorageUpdateOptions,
     StorageUpdater,
-} from "../../types";
+} from "~/types";
 
 type SingleDisplay<Value, Default> = undefined extends Default ? Value | undefined : Exclude<Value, undefined>;
 type Exact<Options, Shape> = Options & Record<Exclude<keyof Options, keyof Shape>, never>;
