@@ -59,18 +59,21 @@ We enforce Conventional Commits via commitlint. The general format is:
 Common types used in this repository:
 - `feat`: a new feature
 - `fix`: a bug fix
+- `deps`: dependency updates, including browser API types; produces a patch release
 - `perf`: performance improvement
 - `refactor`: code change that neither fixes a bug nor adds a feature
 - `docs`: documentation only changes
 - `test`: adding or updating tests
-- `build`: changes that affect the build system or external dependencies
-- `ci`: changes to CI configuration or scripts
+- `build`: changes to the build system; use `deps` for dependency updates that need a release
+- `ci`: changes to CI configuration or scripts; does not trigger a release by itself
 - `chore`: other changes that don’t modify src or test files
 - `revert`: reverts a previous commit
 
 Examples:
 - `feat(storage): add namespace support to getAll()`
 - `fix(secure): handle invalid cipher text in decrypt()`
+- `deps: update dependencies`
+- `deps(chrome): update chrome types`
 - `perf(mono): reduce allocations in shallowEqual()`
 - `docs: expand README with React adapter examples`
 - `ci: update release pipeline`
@@ -87,12 +90,13 @@ Breaking changes:
 Version bumps are derived from commit history via `@release-it/conventional-changelog` and our policy:
 - MAJOR (`x.0.0`) — a breaking commit when the current version is `1.0.0` or newer.
 - MINOR (`0.y.0`) — `feat` and `revert` commits, plus breaking commits while the package is on `0.x`.
-- PATCH (`0.0.z`) — `fix`, `perf`, `refactor`, `ci`.
-- No bump by default — `docs`, `test`, `chore`, `build` (these do not trigger an automatic release by themselves).
+- PATCH (`0.0.z`) — `fix`, `deps`, `perf`, `refactor`.
+- No bump by default — `docs`, `test`, `chore`, `build`, `ci` (these do not trigger an automatic release by themselves).
 
 Notes:
 - Both the `type!:` syntax and a `BREAKING CHANGE:`/`BREAKING-CHANGE:` footer use the same breaking policy.
 - If multiple types are present, the highest applicable level wins.
+- `deps` commits appear under **📦 Dependencies** in both `CHANGELOG.md` and GitHub release notes.
 - Only visible types appear in the generated CHANGELOG; some meta types are hidden from release notes.
 
 ## Release process (release-it + GitHub Actions)
@@ -137,10 +141,13 @@ producing a lockfile that npm 10 rejects during `npm ci`. Declaring parser 6.x k
 tooling and lets npm install commitlint's parser 5.x separately. After changing this dependency, verify a
 lockfile-only update in a clean directory followed by `npm ci`, as well as the release tooling tests.
 
-The bot uses `fix(deps)` commits, so an approved dependency-only update produces a **patch** release of Storage,
-including Chrome-types-only updates and updates to a new upstream major version. Keep the `fix(deps): ...` title when
-squashing; do not change it to `chore`, `feat`, or add a breaking marker. Other commits included in a release continue
-to follow the normal release policy. Review upstream compatibility before merging.
+The bot uses `deps: update dependencies` commits. An approved dependency-only update produces a **patch** release
+of Storage, including Chrome-types-only updates and updates to a new upstream major version. These commits appear
+under **📦 Dependencies** in the changelog and GitHub release notes. Keep the `deps: ...` title when squashing;
+do not change it to `chore`, `feat`, or add a breaking marker. Other commits included in a release continue to follow
+the normal release policy. Review upstream compatibility before merging.
+
+Changes to this policy take effect after merging them from `develop` into `main`, where Renovate reads its configuration.
 
 PR creation or updates automatically trigger CI through the GitHub App's token. **Merging is always manual.** Failed
 checks leave the PR open; they do not update `main` or publish a release. Fix the incompatibility, rerun a transiently

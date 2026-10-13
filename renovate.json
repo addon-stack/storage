@@ -17,8 +17,8 @@
   "prCreation": "immediate",
   "rebaseWhen": "behind-base-branch",
   "semanticCommits": "enabled",
-  "semanticCommitType": "fix",
-  "semanticCommitScope": "deps",
+  "semanticCommitType": "deps",
+  "semanticCommitScope": null,
   "separateMajorMinor": false,
   "separateMinorPatch": false,
   "lockFileMaintenance": {
