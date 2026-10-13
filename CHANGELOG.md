@@ -1,5 +1,23 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.8.1 (2026-10-13)
+
+
+### 🤖 CI
+
+* **deps:** automate weekly dependency updates with Renovate ([32df2f8](https://github.com/addon-stack/storage/commit/32df2f8572dfc9f8c01138d47cdd09534f817ef1))
+
+
+* update action runtimes and pin Ubuntu runners ([d34995f](https://github.com/addon-stack/storage/commit/d34995f8cb08908a657170ec40324af674d3b9a4))
+
+
+
+
+
+### 🙌 Contributors
+
+- [Anjey Tsibylskij](https://github.com/atldays) (@atldays) — commits: 3
+
 ## 🚀 Release `@addon-core/storage` v0.8.0 (2026-09-23)
 
 ### 💥 Breaking Changes
