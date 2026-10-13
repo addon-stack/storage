@@ -86,6 +86,7 @@
     "@types/node": "^22.18.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "conventional-commits-parser": "^6.4.0",
     "esbuild-fix-imports-plugin": "^1.0.22",
     "eslint": "9.39.5",
     "eslint-plugin-import-x": "4.16.1",
