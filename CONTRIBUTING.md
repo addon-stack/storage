@@ -130,6 +130,13 @@ together with `package-lock.json`. Stable updates of any size share that PR, inc
 The Chrome peer dependency remains `*`; unrelated direct dependencies and standalone lockfile maintenance are disabled.
 Transitive lockfile changes required by the selected updates are still included.
 
+Keep `conventional-commits-parser` 6.x as an explicit development dependency. The release tooling's
+`@conventional-changelog/git-client` declares it as an optional peer, while commitlint also needs parser 5.x.
+Without the explicit dependency, npm 11 can remove the release parser during Renovate's lockfile-only update,
+producing a lockfile that npm 10 rejects during `npm ci`. Declaring parser 6.x keeps it resolvable for release
+tooling and lets npm install commitlint's parser 5.x separately. After changing this dependency, verify a
+lockfile-only update in a clean directory followed by `npm ci`, as well as the release tooling tests.
+
 The bot uses `fix(deps)` commits, so an approved dependency-only update produces a **patch** release of Storage,
 including Chrome-types-only updates and updates to a new upstream major version. Keep the `fix(deps): ...` title when
 squashing; do not change it to `chore`, `feat`, or add a breaking marker. Other commits included in a release continue
