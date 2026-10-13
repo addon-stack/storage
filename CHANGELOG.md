@@ -1,5 +1,23 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.8.2 (2026-10-13)
+
+
+### 🐛 Bug Fixed
+
+* **deps:** preserve release parser during lockfile updates ([8918a5b](https://github.com/addon-stack/storage/commit/8918a5be7c6ed4ad7d415aca7c081e03d84529c9))
+
+
+* **deps:** update dependencies ([755ce00](https://github.com/addon-stack/storage/commit/755ce00fcdff5da95abd2fdfaa3a7b6314b8c2c5))
+
+
+
+
+
+### 🙌 Contributors
+
+- [Anjey Tsibylskij](https://github.com/atldays) (@atldays) — commits: 2
+
 ## 🚀 Release `@addon-core/storage` v0.8.1 (2026-10-13)
 
 
