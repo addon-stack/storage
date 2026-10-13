@@ -49,9 +49,8 @@ try {
                 type: "module",
                 dependencies: {
                     "@addon-core/storage": `file:${archive}`,
-                    "@types/chrome": readJson(join(root, "node_modules/@addon-core/browser/package.json")).dependencies[
-                        "@types/chrome"
-                    ],
+                    "@addon-core/browser": installedVersion("@addon-core/browser"),
+                    "@types/chrome": installedVersion("@types/chrome"),
                     react: react === "19" ? installedVersion("react") : "18.3.1",
                     "react-dom": react === "19" ? installedVersion("react-dom") : "18.3.1",
                     "@types/react": react === "19" ? installedVersion("@types/react") : "^18.3.0",
