@@ -7,6 +7,7 @@ on:
       - 'feature/**'
   pull_request:
     branches:
+      - main
       - develop
       - 'feature/**'
   workflow_call:
@@ -26,13 +27,15 @@ jobs:
       name_suffix: ${{ steps.set.outputs.name_suffix }}
     steps:
       - id: set
+        env:
+          FULL_MATRIX: ${{ inputs.full || (github.event_name == 'pull_request' && github.base_ref == 'main') }}
         run: |
-          if [[ "${{ inputs.full }}" == "true" ]]; then
-            echo 'matrix={"os":["ubuntu-latest","windows-latest"],"node":[18,20,22]}' >> $GITHUB_OUTPUT
-            echo 'name_suffix=(full matrix)' >> $GITHUB_OUTPUT
+          if [[ "$FULL_MATRIX" == "true" ]]; then
+            echo 'matrix={"os":["ubuntu-latest","windows-latest"],"node":[18,20,22]}' >> "$GITHUB_OUTPUT"
+            echo 'name_suffix=(full matrix)' >> "$GITHUB_OUTPUT"
           else
-            echo 'matrix={"os":["ubuntu-latest"],"node":[20]}' >> $GITHUB_OUTPUT
-            echo 'name_suffix=' >> $GITHUB_OUTPUT
+            echo 'matrix={"os":["ubuntu-latest"],"node":[20]}' >> "$GITHUB_OUTPUT"
+            echo 'name_suffix=' >> "$GITHUB_OUTPUT"
           fi
 
   build-and-test:
@@ -84,3 +87,32 @@ jobs:
         with:
           name: coverage-${{ matrix.os }}-node${{ matrix.node }}
           path: coverage
+
+  renovate-config:
+    name: Validate Renovate configuration
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Validate configuration
+        run: npx --yes --package renovate@44.155.8 -- renovate-config-validator --strict renovate.json
+
+  ci-success:
+    name: CI passed
+    if: ${{ always() }}
+    needs: [compute-matrix, build-and-test, renovate-config]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require all checks to pass
+        env:
+          CHECKS_PASSED: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') }}
+        run: test "$CHECKS_PASSED" = true

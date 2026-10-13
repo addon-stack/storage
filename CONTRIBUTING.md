@@ -16,6 +16,7 @@ Please also read and follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
 - Commit messages (Conventional Commits)
 - What affects versioning (SemVer policy)
 - Release process (release-it + GitHub Actions)
+- Automated dependency updates
 - Code style and quality
 - Local development
 - Running tests
@@ -40,6 +41,7 @@ We follow a simplified GitFlow:
 Typical flows:
 - New work: branch from `develop` into `feature/<name>`, open PR into `develop`.
 - Release: open a pull request from the chosen base branch (typically `develop`) into `main`. After merge, CI publishes a new version and npm package. Then merge `main` back into `develop` to sync.
+- Dependency updates: Renovate creates `deps/update-dependencies` from `main` and opens a PR back into `main`.
 
 Note: We do not use `release/*` or `hotfix/*` branches.
 
@@ -97,8 +99,8 @@ Notes:
 We automate releases with [release-it](https://github.com/release-it/release-it) and GitHub Actions.
 
 Branches/Triggers:
-- Pull requests into `main`: CI runs checks and may run a release dry-run (no tag, no publish) to validate versioning and the
-  generated notes.
+- Pull requests into `main`: CI runs the full OS/Node matrix, including published consumer declarations, and validates
+  the Renovate configuration. The `CI passed` check requires every job to succeed.
 - `main` (on merge): CI runs a Release Publish that will:
   - determine the next version from commits (SemVer + Conventional Commits),
   - update `CHANGELOG.md`,
@@ -114,6 +116,79 @@ Important:
 - Ensure the intended changes are in `develop` (or the chosen base branch) before opening a PR to `main`.
 - After a successful release, merge `main` back into `develop` to keep versions and files in sync.
 - We do not use `release/*` or `hotfix/*` branches.
+
+## Automated dependency updates
+
+The **Update Dependencies** workflow is scheduled every Sunday at 02:15 in `America/Los_Angeles`.
+GitHub handles daylight saving changes in that timezone and can delay scheduled runs. To run it at any other time,
+open **Actions → Update Dependencies → Run workflow**, select `main`, and start the workflow.
+The weekly schedule does not restrict manual runs.
+
+Renovate reads `renovate.json` from the default branch (`main`) and manages one branch, `deps/update-dependencies`,
+with a PR into `main`. It updates only `@addon-core/browser` in `dependencies` and `@types/chrome` in `devDependencies`,
+together with `package-lock.json`. Stable updates of any size share that PR, including when only one package changes.
+The Chrome peer dependency remains `*`; unrelated direct dependencies and standalone lockfile maintenance are disabled.
+Transitive lockfile changes required by the selected updates are still included.
+
+The bot uses `fix(deps)` commits, so an approved dependency-only update produces a **patch** release of Storage,
+including Chrome-types-only updates and updates to a new upstream major version. Keep the `fix(deps): ...` title when
+squashing; do not change it to `chore`, `feat`, or add a breaking marker. Other commits included in a release continue
+to follow the normal release policy. Review upstream compatibility before merging.
+
+PR creation or updates automatically trigger CI through the GitHub App's token. **Merging is always manual.** Failed
+checks leave the PR open; they do not update `main` or publish a release. Fix the incompatibility, rerun a transiently
+failed check, or let a later weekly/manual run update the PR to a newer dependency version. If you add your own commit
+to the bot branch, Renovate stops updating it automatically to preserve your changes. If no update or rebase is needed,
+a manual run does not create an empty PR or rerun unchanged CI; use Actions **Re-run jobs** for that.
+
+After a successful merge, the existing Release workflow runs its checks, publishes Storage, and synchronizes `main`
+back into `develop`.
+
+### One-time GitHub setup
+
+1. Create one shared GitHub App in the `addon-stack` organization, for example `addon-stack-dependency-updates`.
+   It does not need webhooks or user authorization. Install it using **Only select repositories**, starting with
+   `storage`; add other package repositories to the same installation as their workflows are introduced.
+2. Give the app these repository permissions: **Contents**, **Pull requests**, **Issues**, **Checks**, and
+   **Commit statuses**: read and write; **Administration**: read; **Metadata**: read (automatic).
+   For an organization app, grant **Members**: read. Workflow-file writes, merge-queue access, and Dependabot-alert
+   access are not needed for this configuration. Do not give the dependency bot a branch-protection bypass.
+3. Under the organization's **Settings → Secrets and variables → Actions**, create:
+   - Organization variable `RENOVATE_APP_CLIENT_ID`: the app's **Client ID**.
+   - Organization secret `RENOVATE_APP_PRIVATE_KEY`: the full PEM private key generated for the app.
+   Restrict access to the selected package repositories for both. The workflow reads organization-level values through
+   the same `vars` and `secrets` expressions; repository-level values also work if organization-level sharing is
+   unavailable. It creates a short-lived installation token scoped to the current repository. No PAT or npm publishing
+   token is needed by Renovate. Release publishing keeps its existing authentication.
+4. Merge the workflow, `renovate.json`, and CI changes into `main`. Scheduled runs and the manual workflow entry require
+   the workflow file on the default branch. Do not also enable the hosted Mend Renovate App for this repository.
+5. Run **Update Dependencies** manually and inspect the first PR. Require **CI passed** in the `main` branch
+   rules, require the branch to be up to date, and keep maintainer review/manual merging. Select the PR workflow's check,
+   not the nested check from a post-merge release. A failed, cancelled, or skipped prerequisite makes this check fail.
+6. Account for the existing release workflow when configuring branch rules: `release-it` pushes its version/changelog
+   commit directly to `main`, and the sync job writes to `develop`. A rule requiring PRs for every write must have a
+   narrowly scoped exception for the release automation. The dependency app and its credentials are not used for
+   release publishing. Do not activate a rule that blocks these release writes without configuring a release writer.
+
+### Reusing the app in other packages
+
+Each package can keep its own workflow, schedule, dependency rules, CI, and release process. The shared app supplies
+the bot identity and authentication. To onboard another package, add the repository to the app installation and to
+the access lists for the organization variable and secret, then add its workflow and `renovate.json`.
+
+The current token action intentionally omits `owner` and `repositories`, which limits each generated token to the
+repository running the workflow. `RENOVATE_REPOSITORIES` also targets that repository only. Concurrency groups are
+repository-scoped, so matching workflow names in different packages do not block one another.
+
+The private key itself can mint tokens for all repositories accessible to the app. Share it only among repositories
+with the same trusted maintainers; use separate apps for different trust boundaries or permission requirements.
+
+Renovate and the GitHub App token action are pinned in `.github/workflows/renovate.yml`. When upgrading Renovate itself,
+also update the matching validator version in `.github/workflows/ci.yml`.
+
+References: [Renovate GitHub Action](https://github.com/renovatebot/github-action),
+[GitHub App authentication](https://docs.renovatebot.com/modules/platform/github/), and
+[GitHub workflow schedules](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 
 ## Code style and quality
 We use [ESLint](https://eslint.org/) with TypeScript support and
@@ -249,7 +324,7 @@ this checkout's Git state. Formatting checks also verify that a second pass make
 
 ## Pull requests
 Checklist for contributors:
-- [ ] Branch from `develop`.
+- [ ] Branch from `develop`, except for the automated dependency PR described above.
 - [ ] Follow code style and run locally:
   - `npm run lint && npm run typecheck && npm run test:all && npm run build`
 - [ ] Write or update tests when applicable.
