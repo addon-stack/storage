@@ -1,5 +1,27 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.8.3 (2026-10-14)
+
+
+### 📦 Dependencies
+
+* update dependencies ([b5ed378](https://github.com/addon-stack/storage/commit/b5ed378e7d1e488c8f62b81ca3485c917602dcaf))
+
+
+
+
+### 🤖 CI
+
+* **release:** add deps type and skip ci version bumps ([9a9e9bb](https://github.com/addon-stack/storage/commit/9a9e9bb9e617132fc5242af55514f74739014e03))
+
+
+
+
+
+### 🙌 Contributors
+
+- [Anjey Tsibylskij](https://github.com/atldays) (@atldays) — commits: 3
+
 ## 🚀 Release `@addon-core/storage` v0.8.2 (2026-10-13)
 
 
