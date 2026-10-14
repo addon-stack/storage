@@ -40,15 +40,26 @@ describe("release-it version policy", () => {
         expect(whatBump([{type}], "0.6.0")).toEqual({level: 1});
     });
 
-    test.each(["fix", "perf", "refactor", "ci"])("uses a patch bump for %s", type => {
+    test.each(["fix", "deps", "perf", "refactor"])("uses a patch bump for %s", type => {
         expect(whatBump([{type}], "0.6.0")).toEqual({level: 2});
     });
 
     test("uses the highest non-breaking bump", () => {
-        expect(whatBump([{type: "fix"}, {type: "feat"}], "0.6.0")).toEqual({level: 1});
+        expect(whatBump([{type: "fix"}, {type: "deps"}, {type: "feat"}], "0.6.0")).toEqual({level: 1});
     });
 
-    test.each(["docs", "test", "chore", "build"])("does not release for %s alone", type => {
+    test.each(["docs", "test", "chore", "build", "ci"])("does not release for %s alone", type => {
         expect(whatBump([{type}], "0.6.0")).toBeNull();
+    });
+
+    test("does not release for CI and other maintenance commits", () => {
+        expect(whatBump([{type: "ci"}, {type: "docs"}, {type: "chore"}], "1.2.3")).toBeNull();
+    });
+
+    test.each([
+        ["deps", 2],
+        ["feat", 1],
+    ])("CI commits do not change the release level of %s", (type, level) => {
+        expect(whatBump([{type: "ci"}, {type}], "1.2.3")).toEqual({level});
     });
 });
