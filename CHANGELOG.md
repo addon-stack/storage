@@ -1,5 +1,20 @@
 # Changelog
 
+## 🚀 Release `@addon-core/storage` v0.8.6 (2026-11-16)
+
+
+### 📦 Dependencies
+
+* update dependencies ([cf7abd7](https://github.com/addon-stack/storage/commit/cf7abd799f4a30427719e78003d9687a53b5c5c5))
+
+
+
+
+
+### 🙌 Contributors
+
+- [Anjey Tsibylskij](https://github.com/atldays) (@atldays) — commits: 1
+
 ## 🚀 Release `@addon-core/storage` v0.8.5 (2026-11-05)
 
 
